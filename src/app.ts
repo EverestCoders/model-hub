@@ -4,6 +4,8 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import authRoutes from './routes/auth.routes';
+import modelRoutes from './routes/model.routes';
+import verificationRoutes from './routes/verification.routes';
 
 const app = express();
 
@@ -15,6 +17,8 @@ app.use(morgan('dev'));
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/models', modelRoutes);
+app.use('/api/verification', verificationRoutes);
 
 // Basic route
 app.get('/', (req, res) => {

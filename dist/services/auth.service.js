@@ -8,12 +8,8 @@ const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const ethers_1 = require("ethers");
 const database_1 = __importDefault(require("../config/database"));
 const env_1 = __importDefault(require("../config/env"));
-// In-memory storage for nonces
 const nonceStore = new Map();
 class AuthService {
-    /**
-     * Generate a nonce for wallet signature
-     */
     async generateNonce(data) {
         const { walletAddress } = data;
         // Generate a random nonce
@@ -49,10 +45,24 @@ class AuthService {
         }
         // Create the message that was signed
         const message = `Sign this message to authenticate with FileCoin Model Hub: ${storedNonce.nonce}`;
-        // Verify the signature
-        const recoveredAddress = ethers_1.ethers.verifyMessage(message, signature);
-        if (recoveredAddress.toLowerCase() !== walletAddress.toLowerCase()) {
-            throw new Error('Invalid signature');
+        try {
+            // Handle different signature formats
+            let signatureToVerify = signature;
+            // If signature starts with '0x' but doesn't have a recovery id, try to add it
+            if (signature.startsWith('0x') && signature.length === 130) {
+                // Add recovery id 27 (0x1b) - This is a common default
+                signatureToVerify = signature + '1b';
+                console.log('Added recovery id to signature');
+            }
+            // Verify the signature
+            const recoveredAddress = ethers_1.ethers.verifyMessage(message, signatureToVerify);
+            if (recoveredAddress.toLowerCase() !== walletAddress.toLowerCase()) {
+                throw new Error('Invalid signature');
+            }
+        }
+        catch (error) {
+            console.error('Signature verification error:', error);
+            throw new Error(`Invalid signature: ${error.message}`);
         }
         // Clean up used nonce
         nonceStore.delete(walletAddress.toLowerCase());
@@ -63,6 +73,7 @@ class AuthService {
         if (!user) {
             throw new Error('User not found. Please register first.');
         }
+        // Generate JWT token
         const token = jsonwebtoken_1.default.sign({ id: user.id, walletAddress: user.walletAddress }, env_1.default.jwtSecret, { expiresIn: env_1.default.jwtExpiresIn });
         return {
             token,

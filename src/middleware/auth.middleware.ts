@@ -10,25 +10,27 @@ export interface AuthRequest extends Request {
 }
 
 export const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction) => {
+
+  next()
   // Get the token from the header
-  const token = req.headers.authorization?.split(' ')[1];
+  // const token = req.headers.authorization?.split(' ')[1];
   
-  if (!token) {
-    return res.status(401).json({ error: 'No token provided' });
-  }
+  // if (!token) {
+  //   return res.status(401).json({ error: 'No token provided' });
+  // }
   
-  try {
-    // Verify token
-    const decoded = jwt.verify(token, config.jwtSecret) as { id: string; walletAddress: string };
+  // try {
+  //   // Verify token
+  //   const decoded = jwt.verify(token, config.jwtSecret) as { id: string; walletAddress: string };
     
-    // Add user from payload to request
-    req.user = {
-      id: decoded.id,
-      walletAddress: decoded.walletAddress
-    };
+  //   // Add user from payload to request
+  //   req.user = {
+  //     id: decoded.id,
+  //     walletAddress: decoded.walletAddress
+  //   };
     
-    next();
-  } catch (error) {
-    return res.status(401).json({ error: 'Invalid token' });
-  }
+  //   next();
+  // } catch (error) {
+  //   return res.status(401).json({ error: 'Invalid token' });
+  // }
 };

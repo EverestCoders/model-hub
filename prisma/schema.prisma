@@ -1,21 +1,119 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
+// schema.prisma
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "sqlite"
-  url      = env("DATABASE_URL")
+  url      = "file:./dev.db"
 }
 
 model User {
-  id            String   @id @default(uuid())
-  walletAddress String   @unique
+  id            String     @id @default(uuid())
+  walletAddress String     @unique
   username      String?
   bio           String?
   avatarCid     String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  // Relations
+  models        Model[]
+  ratings       Rating[]
+  downloads     Download[]
+}
+
+model Model {
+  id                  String         @id @default(uuid())
+  name                String
+  description         String?
+  creatorId           String
+  creator             User           @relation(fields: [creatorId], references: [id])
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  licenseType         String
+  commercialUse       Boolean        @default(false)
+  attributionRequired Boolean        @default(true)
+  royaltyPercentage   Int            @default(0)
+  category            String?
+  downloadCount       Int            @default(0)
+  ratingAvg           Float?
+  latestVersionId     String?
+
+  // Relations
+  versions            ModelVersion[]
+  tags                ModelTag[]
+  ratings             Rating[]
+  downloads           Download[]
+}
+
+model ModelVersion {
+  id              String        @id @default(uuid())
+  modelId         String
+  model           Model         @relation(fields: [modelId], references: [id])
+  versionNumber   Int
+  filecoinCid     String        @unique
+  metadataCid     String
+  hash            String
+  parentVersionId String?
+  parentVersion   ModelVersion? @relation("VersionHistory", fields: [parentVersionId], references: [id])
+  childVersions   ModelVersion[] @relation("VersionHistory")
+  commitMessage   String?
+  createdAt       DateTime      @default(now())
+  txHash          String?
+  sizeBytes       Int?
+  parameters      Int?
+
+  // Relations
+  storageDeals    StorageDeal[]
+  downloads       Download[]
+
+  @@unique([modelId, versionNumber])
+}
+
+model StorageDeal {
+  id              String       @id @default(uuid())
+  modelVersionId  String
+  modelVersion    ModelVersion @relation(fields: [modelVersionId], references: [id])
+  dealId          Int
+  providerId      String
+  startTime       DateTime
+  endTime         DateTime
+  status          String
+  txHash          String?
+  createdAt       DateTime     @default(now())
+}
+
+model ModelTag {
+  id      Int    @id @default(autoincrement())
+  modelId String
+  model   Model  @relation(fields: [modelId], references: [id])
+  tag     String
+
+  @@unique([modelId, tag])
+}
+
+model Rating {
+  id        Int      @id @default(autoincrement())
+  modelId   String
+  model     Model    @relation(fields: [modelId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  rating    Int      // 1-5 stars
+  review    String?
+  createdAt DateTime @default(now())
+
+  @@unique([modelId, userId])
+}
+
+model Download {
+  id            Int           @id @default(autoincrement())
+  modelId       String
+  model         Model         @relation(fields: [modelId], references: [id])
+  versionId     String
+  version       ModelVersion  @relation(fields: [versionId], references: [id])
+  userId        String?
+  user          User?         @relation(fields: [userId], references: [id])
+  downloadedAt  DateTime      @default(now())
+  ipAddress     String?
 }
