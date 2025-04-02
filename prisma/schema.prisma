@@ -52,7 +52,7 @@ model ModelVersion {
   modelId         String
   model           Model         @relation(fields: [modelId], references: [id])
   versionNumber   Int
-  filecoinCid     String        @unique // directory cid
+  filecoinCid     String        // cid of the modelfiles
   metadataCid     String         // cid of metadata file
   hash            String        // hash of all files combined
   parentVersionId String?

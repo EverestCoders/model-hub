@@ -236,6 +236,7 @@ export class ModelService {
       version: {
         versionNumber: version.versionNumber,
         filecoinCid: version.filecoinCid,
+        metadatacid: version.metadataCid,
         id: version.id
       },
       createdAt: model.createdAt.toISOString()

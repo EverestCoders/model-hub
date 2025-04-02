@@ -32,17 +32,13 @@ export class StorageService {
       }
 
       const uniqueIdentifier = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
-      const metadataWithUnique = {
-        ...metadata,
-        _uniqueId: uniqueIdentifier
-      };
       
       // Upload directory to Lighthouse
       const uploadResponse = await lighthouse.upload(tempDirPath, process.env.LIGHTHOUSE_API_KEY as string);
       const filecoinCid = uploadResponse.data.Hash;
       
       // Upload metadata to Lighthouse
-      const metadataJson = JSON.stringify(metadataWithUnique);
+      const metadataJson = JSON.stringify(metadata);
       const metadataPath = path.join(tempDirPath, 'metadata.json');
       fs.writeFileSync(metadataPath, metadataJson);
       const metadataResponse = await lighthouse.upload(metadataPath, process.env.LIGHTHOUSE_API_KEY as string);
