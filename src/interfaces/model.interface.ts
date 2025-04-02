@@ -1,3 +1,10 @@
+export interface ModelFileInfo {
+  filename: string;
+  path?: string;
+  sizeBytes: number;
+  mimeType?: string;
+}
+
 export interface ModelFilter {
   page?: number;
   limit?: number;
@@ -19,13 +26,13 @@ export interface ModelCreateDto {
   category?: string;
   tags?: string;
   parameters?: number;
-  modelFile: Express.Multer.File;
+  modelFile: Express.Multer.File | Express.Multer.File[];
 }
 
 export interface VersionCreateDto {
   commitMessage?: string;
   parameters?: number;
-  modelFile: Express.Multer.File;
+  modelFile: Express.Multer.File | Express.Multer.File[];
 }
 
 export interface ModelResponse {
@@ -72,6 +79,7 @@ export interface ModelDetailResponse {
     createdAt: string;
     sizeBytes: number | null;
     parameters: number | null;
+    files: ModelFileInfo[];
   } | null;
   ratings: Array<{
     rating: number;
@@ -101,6 +109,7 @@ export interface ModelVersionResponse {
     activeDeals: number;
     totalDeals: number;
   };
+  files: ModelFileInfo[];
 }
 
 export interface DownloadResponse {

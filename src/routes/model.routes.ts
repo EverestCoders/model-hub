@@ -1,4 +1,3 @@
-// src/routes/model.routes.ts
 import { Router } from 'express';
 import { ModelController } from '../controllers/model.controller';
 import multer from 'multer';

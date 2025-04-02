@@ -1,4 +1,3 @@
-// schema.prisma
 generator client {
   provider = "prisma-client-js"
 }
@@ -45,6 +44,7 @@ model Model {
   tags                ModelTag[]
   ratings             Rating[]
   downloads           Download[]
+  modelFiles          ModelFile[]
 }
 
 model ModelVersion {
@@ -52,23 +52,41 @@ model ModelVersion {
   modelId         String
   model           Model         @relation(fields: [modelId], references: [id])
   versionNumber   Int
-  filecoinCid     String        @unique
-  metadataCid     String
-  hash            String
+  filecoinCid     String        @unique // directory cid
+  metadataCid     String         // cid of metadata file
+  hash            String        // hash of all files combined
   parentVersionId String?
   parentVersion   ModelVersion? @relation("VersionHistory", fields: [parentVersionId], references: [id])
   childVersions   ModelVersion[] @relation("VersionHistory")
   commitMessage   String?
   createdAt       DateTime      @default(now())
   txHash          String?
-  sizeBytes       Int?
+  sizeBytes       BigInt?
   parameters      Int?
 
   // Relations
   storageDeals    StorageDeal[]
   downloads       Download[]
+  modelFiles      ModelFile[]
 
   @@unique([modelId, versionNumber])
+}
+
+model ModelFile {
+  id              String        @id @default(uuid())
+  modelId         String
+  model           Model         @relation(fields: [modelId], references: [id])
+  versionId       String
+  version         ModelVersion  @relation(fields: [versionId], references: [id])
+  filename        String        // Original filename
+  path            String?       // Path within the directory structure
+  sizeBytes       BigInt           // Size of this specific file
+  mimeType        String?       // MIME type of the file
+  fileCid         String?       // Individual file CID if available
+  hash            String?       // Hash of this individual file
+  createdAt       DateTime      @default(now())
+
+  @@unique([versionId, filename, path])
 }
 
 model StorageDeal {

@@ -1,15 +1,24 @@
-// scripts/seed.ts
-
 import { PrismaClient, User, Model, ModelVersion, StorageDeal, Rating } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
+import lighthouse from '@lighthouse-web3/sdk';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const prisma = new PrismaClient();
+const USE_REAL_LIGHTHOUSE = process.env.USE_REAL_LIGHTHOUSE === 'true';
 
 async function main() {
   console.log('Starting database seeding...');
+
+  if (USE_REAL_LIGHTHOUSE && !process.env.LIGHTHOUSE_API_KEY) {
+    console.error('LIGHTHOUSE_API_KEY is required when USE_REAL_LIGHTHOUSE is true');
+    process.exit(1);
+  }
 
   // Create sample users
   const users = await createUsers();
@@ -18,6 +27,10 @@ async function main() {
   // Create sample models with versions
   const models = await createModels(users);
   console.log(`Created ${models.length} models with versions`);
+
+  // Create model files for each version
+  await createModelFiles(models);
+  console.log(`Created model files for all versions`);
 
   // Create storage deals
   const storageDeals = await createStorageDeals(models);
@@ -71,6 +84,123 @@ async function createUsers(): Promise<User[]> {
 type ModelWithVersions = Model & {
   versions: ModelVersion[];
 };
+
+// Helper function to get appropriate file types based on model category
+function getFileTypesForCategory(category: string): { name: string, size: number, type: string }[] {
+  switch (category) {
+    case 'diffusion':
+      return [
+        { name: 'model.safetensors', size: 5_000_000_000, type: 'application/octet-stream' },
+        { name: 'vae.safetensors', size: 800_000_000, type: 'application/octet-stream' },
+        { name: 'config.json', size: 25_000, type: 'application/json' },
+        { name: 'README.md', size: 8_000, type: 'text/markdown' }
+      ];
+    case 'language':
+      return [
+        { name: 'model.safetensors', size: 15_000_000_000, type: 'application/octet-stream' },
+        { name: 'tokenizer.json', size: 2_500_000, type: 'application/json' },
+        { name: 'config.json', size: 35_000, type: 'application/json' },
+        { name: 'tokenizer_config.json', size: 12_000, type: 'application/json' },
+        { name: 'README.md', size: 12_000, type: 'text/markdown' }
+      ];
+    case '3d':
+      return [
+        { name: 'model.pt', size: 2_500_000_000, type: 'application/octet-stream' },
+        { name: 'config.yaml', size: 15_000, type: 'text/yaml' },
+        { name: 'README.md', size: 7_000, type: 'text/markdown' }
+      ];
+    case 'audio':
+      return [
+        { name: 'model.safetensors', size: 3_500_000_000, type: 'application/octet-stream' },
+        { name: 'processor.json', size: 500_000, type: 'application/json' },
+        { name: 'config.json', size: 28_000, type: 'application/json' },
+        { name: 'README.md', size: 9_000, type: 'text/markdown' }
+      ];
+    case 'video':
+      return [
+        { name: 'model.safetensors', size: 8_000_000_000, type: 'application/octet-stream' },
+        { name: 'flow_model.safetensors', size: 1_200_000_000, type: 'application/octet-stream' },
+        { name: 'config.json', size: 45_000, type: 'application/json' },
+        { name: 'README.md', size: 15_000, type: 'text/markdown' }
+      ];
+    default:
+      return [
+        { name: 'model.bin', size: 1_500_000_000, type: 'application/octet-stream' },
+        { name: 'config.json', size: 15_000, type: 'application/json' },
+        { name: 'README.md', size: 5_000, type: 'text/markdown' }
+      ];
+  }
+}
+
+async function uploadToLighthouse(tempDir: string, fileTypes: { name: string, size: number, type: string }[]): Promise<{ filecoinCid: string, metadataCid: string, hash: string }> {
+  if (!USE_REAL_LIGHTHOUSE) {
+    // For mock mode, return mock CIDs
+    return {
+      filecoinCid: 'bafy' + crypto.randomBytes(30).toString('hex'),
+      metadataCid: 'bafy' + crypto.randomBytes(30).toString('hex'),
+      hash: crypto.randomBytes(32).toString('hex')
+    };
+  }
+
+  try {
+    // Create directory if it doesn't exist
+    fs.mkdirSync(tempDir, { recursive: true });
+    
+    // Create each file with minimal content for upload
+    const fileHashes = [];
+    for (const fileType of fileTypes) {
+      const filePath = path.join(tempDir, fileType.name);
+      // Write a sample file with a small amount of random data
+      // (Using full sizes would be impractical for testing)
+      const content = crypto.randomBytes(Math.min(fileType.size, 1024)); // Cap at 1KB
+      fs.writeFileSync(filePath, content);
+      
+      // Calculate file hash
+      const fileHash = crypto.createHash('sha256').update(content).digest('hex');
+      fileHashes.push(fileHash);
+    }
+    
+    // Upload directory to Lighthouse
+    console.log(`Uploading model directory to Lighthouse: ${tempDir}`);
+    const uploadResponse = await lighthouse.upload(tempDir, process.env.LIGHTHOUSE_API_KEY as string);
+    
+    if (!uploadResponse.data || !uploadResponse.data.Hash) {
+      throw new Error('Failed to get CID from Lighthouse upload');
+    }
+    
+    const filecoinCid = uploadResponse.data.Hash;
+    
+    // Create and upload metadata
+    const metadataPath = path.join(tempDir, 'metadata.json');
+    const metadata = {
+      files: fileTypes.map(f => ({ name: f.name, size: f.size, type: f.type })),
+      createdAt: new Date().toISOString()
+    };
+    fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2));
+    
+    const metadataResponse = await lighthouse.upload(metadataPath, process.env.LIGHTHOUSE_API_KEY as string);
+    const metadataCid = metadataResponse.data.Hash;
+    
+    // Calculate combined hash
+    const combinedHash = crypto.createHash('sha256')
+      .update(fileHashes.join(''))
+      .digest('hex');
+    
+    return {
+      filecoinCid,
+      metadataCid,
+      hash: combinedHash
+    };
+  } catch (error) {
+    console.error('Error uploading to Lighthouse:', error);
+    // Fallback to mock data in case of errors
+    return {
+      filecoinCid: 'bafy' + crypto.randomBytes(30).toString('hex'),
+      metadataCid: 'bafy' + crypto.randomBytes(30).toString('hex'),
+      hash: crypto.randomBytes(32).toString('hex')
+    };
+  }
+}
 
 async function createModels(users: User[]): Promise<ModelWithVersions[]> {
   // Check if models already exist
@@ -170,40 +300,58 @@ async function createModels(users: User[]): Promise<ModelWithVersions[]> {
     }
     
     // Create initial version
-    const versionCount = Math.floor(Math.random() * 3) + 1; // 1 to 3 versions
+    const versionCount = Math.floor(Math.random() * 2) + 1; // 1 to 2 versions to keep seeding time reasonable
     let parentVersionId: string | null = null;
     
     for (let v = 1; v <= versionCount; v++) {
-      const filecoinCid = 'bafy' + crypto.randomBytes(30).toString('hex');
-      const metadataCid = 'bafy' + crypto.randomBytes(30).toString('hex');
-      const hash = crypto.randomBytes(32).toString('hex');
-      const parameters = [70000000, 125000000, 180000000][Math.floor(Math.random() * 3)];
-      const sizeBytes = parameters * 4;
+      console.log(`Creating version ${v} for model ${model.name}`);
       
-      const modelVersion: ModelVersion = await prisma.modelVersion.create({
-        data: {
-          modelId: createdModel.id,
-          versionNumber: v,
-          filecoinCid,
-          metadataCid,
-          hash,
-          parentVersionId,
-          commitMessage: v === 1 ? 'Initial release' : `Improved ${model.category} capabilities (v${v})`,
-          txHash: '0x' + crypto.randomBytes(32).toString('hex'),
-          sizeBytes,
-          parameters
-        }
-      });
+      // Get file types for this model category
+      const fileTypes = getFileTypesForCategory(model.category);
       
-      // Update parent for next version
-      parentVersionId = modelVersion.id;
+      // Create temp directory for files
+      const tempDir = path.join(os.tmpdir(), `model-seed-${createdModel.id}-v${v}-${uuidv4()}`);
       
-      // Set latest version on the model
-      if (v === versionCount) {
-        await prisma.model.update({
-          where: { id: createdModel.id },
-          data: { latestVersionId: modelVersion.id }
+      try {
+        // Upload to Lighthouse (real or mock)
+        const { filecoinCid, metadataCid, hash } = await uploadToLighthouse(tempDir, fileTypes);
+        
+        // Calculate parameters and size
+        const parameters = [70000000, 125000000, 180000000][Math.floor(Math.random() * 3)];
+        const sizeBytes = BigInt(fileTypes.reduce((sum, file) => sum + (USE_REAL_LIGHTHOUSE ? 1024 : file.size), 0)); 
+        
+        const modelVersion: ModelVersion = await prisma.modelVersion.create({
+          data: {
+            modelId: createdModel.id,
+            versionNumber: v,
+            filecoinCid,
+            metadataCid,
+            hash,
+            parentVersionId,
+            commitMessage: v === 1 ? 'Initial release' : `Improved ${model.category} capabilities (v${v})`,
+            txHash: '0x' + crypto.randomBytes(32).toString('hex'),
+            sizeBytes,
+            parameters
+          }
         });
+        
+        // Update parent for next version
+        parentVersionId = modelVersion.id;
+        
+        // Set latest version on the model
+        if (v === versionCount) {
+          await prisma.model.update({
+            where: { id: createdModel.id },
+            data: { latestVersionId: modelVersion.id }
+          });
+        }
+      } catch (error) {
+        console.error(`Error creating version ${v} for model ${model.name}:`, error);
+      } finally {
+        // Clean up temp directory
+        if (fs.existsSync(tempDir)) {
+          fs.rmSync(tempDir, { recursive: true, force: true });
+        }
       }
     }
     
@@ -223,6 +371,44 @@ async function createModels(users: User[]): Promise<ModelWithVersions[]> {
   return models;
 }
 
+async function createModelFiles(models: ModelWithVersions[]): Promise<void> {
+  // Check if model files already exist
+  const existingCount = await prisma.modelFile.count();
+  
+  if (existingCount > 0) {
+    console.log('Model files already exist, skipping file creation');
+    return;
+  }
+
+  for (const model of models) {
+    for (const version of model.versions) {
+      // Get appropriate file types for this category
+      const fileTypes = getFileTypesForCategory(model.category as string);
+      
+      console.log(`Creating files for model ${model.name}, version ${version.versionNumber}`);
+      
+      // Create model files
+      for (const fileType of fileTypes) {
+        await prisma.modelFile.create({
+          data: {
+            modelId: model.id,
+            versionId: version.id,
+            filename: fileType.name,
+            path: fileType.name,
+            sizeBytes: BigInt(USE_REAL_LIGHTHOUSE ? 1024 : fileType.size), // Use reduced size for real uploads
+            mimeType: fileType.type,
+            hash: crypto.randomBytes(32).toString('hex'),
+            fileCid: USE_REAL_LIGHTHOUSE ? null : 'bafy' + crypto.randomBytes(30).toString('hex')
+          }
+        });
+      }
+      
+      // For real uploads, we wouldn't know individual file CIDs unless we queried them
+      // In a production environment, you might want to retrieve this info
+    }
+  }
+}
+
 async function createStorageDeals(models: ModelWithVersions[]): Promise<StorageDeal[]> {
   // Check if storage deals already exist
   const existingCount = await prisma.storageDeal.count();
@@ -236,8 +422,8 @@ async function createStorageDeals(models: ModelWithVersions[]): Promise<StorageD
   
   for (const model of models) {
     for (const version of model.versions) {
-      // Create 1-3 storage deals per version
-      const dealCount = Math.floor(Math.random() * 3) + 1;
+      // Create 1-2 storage deals per version
+      const dealCount = Math.floor(Math.random() * 2) + 1;
       
       for (let i = 0; i < dealCount; i++) {
         const now = new Date();
@@ -279,8 +465,8 @@ async function createRatings(models: ModelWithVersions[], users: User[]): Promis
   const ratings: Rating[] = [];
   
   for (const model of models) {
-    // Each model gets 0-5 ratings
-    const ratingCount = Math.floor(Math.random() * 6);
+    // Each model gets 0-3 ratings
+    const ratingCount = Math.floor(Math.random() * 4);
     const ratingUsers = [...users].sort(() => 0.5 - Math.random()).slice(0, ratingCount);
     
     for (const user of ratingUsers) {

@@ -1,8 +1,7 @@
-// src/services/versioning.service.ts
-
 import { PrismaClient, Model, ModelVersion } from '@prisma/client';
 import { StorageService } from './storage.services';
 import { BlockchainService } from './blockchain.service';
+import crypto from 'crypto';
 
 export class VersioningService {
   private prisma: PrismaClient;
@@ -21,12 +20,12 @@ export class VersioningService {
 
   async createInitialVersion(
     modelId: string, 
-    file: Express.Multer.File, 
+    modelFiles: Express.Multer.File[], 
     metadata: any, 
     commitMessage?: string
   ): Promise<ModelVersion> {
     // Upload to storage
-    const { filecoinCid, metadataCid, hash, sizeBytes } = await this.storageService.uploadModel(file, metadata);
+    const { filecoinCid, metadataCid, hash, sizeBytes } = await this.storageService.uploadModelDirectory(modelFiles, metadata);
     
     // Get the model
     const model = await this.prisma.model.findUnique({
@@ -60,6 +59,22 @@ export class VersioningService {
       }
     });
 
+    for (const file of modelFiles) {
+      const fileHash = crypto.createHash('sha256').update(file.buffer).digest('hex');
+      
+      await this.prisma.modelFile.create({
+        data: {
+          modelId,
+          versionId: version.id,
+          filename: file.originalname,
+          path: file.originalname, // Simple case - might need to parse path from filename
+          sizeBytes: file.size,
+          mimeType: file.mimetype,
+          hash: fileHash
+        }
+      });
+    }
+
     // Update the model's latestVersionId
     await this.prisma.model.update({
       where: { id: modelId },
@@ -71,7 +86,7 @@ export class VersioningService {
 
   async createNewVersion(
     modelId: string, 
-    file: Express.Multer.File, 
+    modelFiles: Express.Multer.File[], 
     metadata: any, 
     commitMessage?: string
   ): Promise<ModelVersion> {
@@ -94,7 +109,7 @@ export class VersioningService {
     const newVersionNumber = latestVersion ? latestVersion.versionNumber + 1 : 1;
 
     // Upload to storage
-    const { filecoinCid, metadataCid, hash, sizeBytes } = await this.storageService.uploadModel(file, metadata);
+    const { filecoinCid, metadataCid, hash, sizeBytes } = await this.storageService.uploadModelDirectory(modelFiles, metadata);
     
     // Register on blockchain (mock)
     const txHash = await this.blockchainService.registerModelVersion(
@@ -119,6 +134,23 @@ export class VersioningService {
         parameters: metadata.parameters || null
       }
     });
+
+    // Create records for each individual file
+    for (const file of modelFiles) {
+      const fileHash = crypto.createHash('sha256').update(file.buffer).digest('hex');
+      
+      await this.prisma.modelFile.create({
+        data: {
+          modelId,
+          versionId: version.id,
+          filename: file.originalname,
+          path: file.originalname, // might need to parse path from filename
+          sizeBytes: file.size,
+          mimeType: file.mimetype,
+          hash: fileHash
+        }
+      });
+    }
 
     // Update the model's latestVersionId
     await this.prisma.model.update({

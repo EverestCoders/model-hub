@@ -105,7 +105,10 @@ export class ModelService {
         tags: true,
         versions: {
           orderBy: { versionNumber: 'desc' },
-          take: 1
+          take: 1,
+          include: {
+            modelFiles: true
+          }
         },
         ratings: {
           include: {
@@ -136,7 +139,13 @@ export class ModelService {
       commitMessage: model.versions[0].commitMessage,
       createdAt: model.versions[0].createdAt.toISOString(),
       sizeBytes: model.versions[0].sizeBytes,
-      parameters: model.versions[0].parameters
+      parameters: model.versions[0].parameters,
+      files: model.versions[0].modelFiles.map(file => ({
+        filename: file.filename,
+        path: file.path,
+        sizeBytes: file.sizeBytes,
+        mimeType: file.mimeType
+      }))
     } : null;
 
     return {
@@ -195,10 +204,12 @@ export class ModelService {
     const metadata = {
       parameters: modelData.parameters || null
     };
+
+    const modelFiles = Array.isArray(modelData.modelFile) ? modelData.modelFile : [modelData.modelFile];  
     
     const version = await this.versioningService.createInitialVersion(
       model.id,
-      modelData.modelFile,
+      modelFiles,
       metadata,
       'Initial version'
     );
@@ -234,10 +245,12 @@ export class ModelService {
     const metadata = {
       parameters: versionData.parameters || null
     };
+
+    const modelFiles = Array.isArray(versionData.modelFile) ? versionData.modelFile : [versionData.modelFile];
     
     const version = await this.versioningService.createNewVersion(
       modelId,
-      versionData.modelFile,
+      modelFiles,
       metadata,
       versionData.commitMessage
     );
@@ -412,4 +425,6 @@ export class ModelService {
 
     return { success: true };
   }
+
+  
 }
