@@ -201,9 +201,24 @@ export class ModelService {
     }
 
     // Create initial version
+    // const metadata = {
+    //   parameters: modelData.parameters || null
+    // };
+
     const metadata = {
-      parameters: modelData.parameters || null
+      name: modelData.name,
+      description: modelData.description,
+      licenseType: modelData.licenseType || 'MIT',
+      commercialUse: modelData.commercialUse || false,
+      attributionRequired: modelData.attributionRequired !== undefined ? modelData.attributionRequired : true,
+      royaltyPercentage: modelData.royaltyPercentage || 0,
+      category: modelData.category || null,
+      tags: modelData.tags ? modelData.tags.split(',').map(tag => tag.trim()) : [],
+      parameters: modelData.parameters || null,
+      createdAt: new Date().toISOString()
     };
+
+    console.log("metadata", metadata);
 
     const modelFiles = Array.isArray(modelData.modelFile) ? modelData.modelFile : [modelData.modelFile];  
     
@@ -241,9 +256,21 @@ export class ModelService {
       throw new Error('You do not have permission to update this model');
     }
 
+    const latestVersion = await this.prisma.modelVersion.findFirst({
+      where: { modelId },
+      orderBy: { versionNumber: 'desc' }
+    });
+    console.log("latestVersion", latestVersion);
+
+    const newVersionNumber = latestVersion ? latestVersion.versionNumber + 1 : 1;
     // Create new version
     const metadata = {
-      parameters: versionData.parameters || null
+      commitMessage: versionData.commitMessage || null,
+      parameters: versionData.parameters || null,
+      modelId: modelId,
+      versionNumber: newVersionNumber,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
 
     const modelFiles = Array.isArray(versionData.modelFile) ? versionData.modelFile : [versionData.modelFile];
@@ -261,6 +288,7 @@ export class ModelService {
         id: version.id,
         versionNumber: version.versionNumber,
         filecoinCid: version.filecoinCid,
+        metadataCid: version.metadataCid,
         commitMessage: version.commitMessage,
         createdAt: version.createdAt.toISOString()
       }

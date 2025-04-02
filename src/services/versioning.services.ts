@@ -25,7 +25,10 @@ export class VersioningService {
     commitMessage?: string
   ): Promise<ModelVersion> {
     // Upload to storage
-    const { filecoinCid, metadataCid, hash, sizeBytes } = await this.storageService.uploadModelDirectory(modelFiles, metadata);
+    const { filecoinCid, metadataCid, hash, sizeBytes } = await this.storageService.uploadModelDirectory(modelFiles, {
+      ...metadata,
+      _uniqueId: `initial_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`
+    });
     
     // Get the model
     const model = await this.prisma.model.findUnique({
@@ -45,7 +48,7 @@ export class VersioningService {
     );
 
     // Create version in database
-    const version = await this.prisma.modelVersion.create({
+    const version = await this.prisma.modelVersion. create({
       data: {
         modelId: modelId,
         versionNumber: 1,
@@ -109,7 +112,10 @@ export class VersioningService {
     const newVersionNumber = latestVersion ? latestVersion.versionNumber + 1 : 1;
 
     // Upload to storage
-    const { filecoinCid, metadataCid, hash, sizeBytes } = await this.storageService.uploadModelDirectory(modelFiles, metadata);
+    const { filecoinCid, metadataCid, hash, sizeBytes } = await this.storageService.uploadModelDirectory(modelFiles, {
+      ...metadata,
+      _uniqueId: `initial_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`
+    });
     
     // Register on blockchain (mock)
     const txHash = await this.blockchainService.registerModelVersion(

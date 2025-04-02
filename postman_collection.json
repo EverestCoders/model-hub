@@ -1,0 +1,522 @@
+{
+	"info": {
+		"_postman_id": "0034d6ca-2124-4eb3-a475-f740b0d4fd76",
+		"name": "Everest Model Hub API",
+		"description": "Collection for testing the Everest Model Hub API endpoints",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "27617905"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Get Nonce",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/nonce/{{walletAddress}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"nonce",
+								"{{walletAddress}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Connect Wallet",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const responseJson = pm.response.json();",
+									"if (responseJson.token) {",
+									"    pm.environment.set('authToken', responseJson.token);",
+									"    pm.environment.set('userId', responseJson.user.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"walletAddress\": \"{{walletAddress}}\",\n    \"signature\": \"{{signature}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/connect",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"connect"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Register User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"walletAddress\": \"{{walletAddress}}\",\n    \"signature\": \"{{signature}}\",\n    \"username\": \"testuser\",\n    \"bio\": \"Testing the API\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/register",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"register"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Models",
+			"item": [
+				{
+					"name": "Get All Models",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/models?page=1&limit=10&sort=createdAt&order=desc",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"models"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "sort",
+									"value": "createdAt"
+								},
+								{
+									"key": "order",
+									"value": "desc"
+								},
+								{
+									"key": "category",
+									"value": "diffusion",
+									"disabled": true
+								},
+								{
+									"key": "tag",
+									"value": "text-to-image",
+									"disabled": true
+								},
+								{
+									"key": "license",
+									"value": "MIT",
+									"disabled": true
+								},
+								{
+									"key": "creator",
+									"value": "{{userId}}",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Model by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/models/{{modelId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"models",
+								"{{modelId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Model",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const responseJson = pm.response.json();",
+									"if (responseJson.id) {",
+									"    pm.environment.set('modelId', responseJson.id);",
+									"    pm.environment.set('versionId', responseJson.version.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "name",
+									"value": "Test Model",
+									"type": "text"
+								},
+								{
+									"key": "description",
+									"value": "A test model for API testing",
+									"type": "text"
+								},
+								{
+									"key": "licenseType",
+									"value": "MIT",
+									"type": "text"
+								},
+								{
+									"key": "commercialUse",
+									"value": "true",
+									"type": "text"
+								},
+								{
+									"key": "attributionRequired",
+									"value": "true",
+									"type": "text"
+								},
+								{
+									"key": "royaltyPercentage",
+									"value": "0",
+									"type": "text"
+								},
+								{
+									"key": "category",
+									"value": "language",
+									"type": "text"
+								},
+								{
+									"key": "tags",
+									"value": "test,api,language-model",
+									"type": "text"
+								},
+								{
+									"key": "parameters",
+									"value": "70000000",
+									"type": "text"
+								},
+								{
+									"key": "modelFiles",
+									"type": "file",
+									"src": "/path/to/model-file-1.safetensors"
+								},
+								{
+									"key": "modelFiles",
+									"type": "file",
+									"src": "/path/to/config.json"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/models",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"models"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Model Versions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/models/{{modelId}}/versions",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"models",
+								"{{modelId}}",
+								"versions"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Model Version",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "commitMessage",
+									"value": "Updated model with improved performance",
+									"type": "text"
+								},
+								{
+									"key": "parameters",
+									"value": "80000000",
+									"type": "text"
+								},
+								{
+									"key": "modelFiles",
+									"type": "file",
+									"src": "/path/to/model-file-2.safetensors"
+								},
+								{
+									"key": "modelFiles",
+									"type": "file",
+									"src": "/path/to/updated-config.json"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/models/{{modelId}}/versions",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"models",
+								"{{modelId}}",
+								"versions"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Download Model",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/models/{{modelId}}/download",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"models",
+								"{{modelId}}",
+								"download"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Download Specific Version",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/models/{{modelId}}/download/{{versionId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"models",
+								"{{modelId}}",
+								"download",
+								"{{versionId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Rate Model",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"rating\": 5,\n    \"review\": \"Great model, works as expected!\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/models/{{modelId}}/rate",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"models",
+								"{{modelId}}",
+								"rate"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Verification",
+			"item": [
+				{
+					"name": "Verify Integrity",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"cid\": \"{{filecoinCid}}\",\n    \"fileUrl\": \"https://gateway.lighthouse.storage/ipfs/{{filecoinCid}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/verification/integrity",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"verification",
+								"integrity"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Verify Provenance",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/verification/provenance/{{filecoinCid}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"verification",
+								"provenance",
+								"{{filecoinCid}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Verify Storage",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/verification/storage/{{filecoinCid}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"verification",
+								"storage",
+								"{{filecoinCid}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Verification Report",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/verification/report/{{modelId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"verification",
+								"report",
+								"{{modelId}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}
