@@ -55,41 +55,62 @@ const Home: React.FC = () => {
       
       const walletAddress = accounts[0];
       
-      // Get nonce from your backend
-      const { nonce } = await authService.getNonce(walletAddress);
-      
-      // Create the message to sign
-      const message = `Sign this message to authenticate with FileCoin Model Hub: ${nonce}`;
-      
-      // Request signature from the user
-      const signature = await (window as any).ethereum.request({
-        method: 'personal_sign',
-        params: [message, walletAddress],
-      });
-      
+      // First let's check if we can sign in directly
       try {
+        // Get nonce from your backend
+        console.log("Getting nonce for login attempt");
+        const { nonce } = await authService.getNonce(walletAddress);
+        
+        // Create the message to sign
+        const message = `Sign this message to authenticate with FileCoin Model Hub: ${nonce}`;
+        
+        // Request signature from the user
+        const signature = await (window as any).ethereum.request({
+          method: 'personal_sign',
+          params: [message, walletAddress],
+        });
+        
         // Try to connect with existing account
         const response = await authService.connectWallet(walletAddress, signature);
         localStorage.setItem('auth_token', response.token);
         localStorage.setItem('user', JSON.stringify(response.user));
         navigate('/models');
+        
       } catch (loginErr) {
-        // If user doesn't exist, register a new account
+        console.log("Login failed:", loginErr);
+        
+        // If user doesn't exist, we need to register
         if ((loginErr as Error).message.includes('not found')) {
-          try {
-            const username = `user_${walletAddress.substring(2, 8)}`;
-            const registerResponse = await authService.register(walletAddress, signature, username);
-            localStorage.setItem('auth_token', registerResponse.token);
-            localStorage.setItem('user', JSON.stringify(registerResponse.user));
-            navigate('/models');
-          } catch (registerErr) {
-            throw registerErr;
-          }
+          // Get a fresh nonce for registration
+          console.log("Getting new nonce for registration");
+          const { nonce: regNonce } = await authService.getNonce(walletAddress);
+          
+          // Create the registration message
+          const regMessage = `Sign this message to authenticate with FileCoin Model Hub: ${regNonce}`;
+          
+          // Get a fresh signature for registration
+          const regSignature = await (window as any).ethereum.request({
+            method: 'personal_sign',
+            params: [regMessage, walletAddress],
+          });
+          
+          // Generate a username
+          const username = `user_${walletAddress.substring(2, 8)}`;
+          
+          console.log("Registering with signature");
+          const registerResponse = await authService.register(
+            walletAddress, 
+            regSignature, 
+            username
+          );
+          
+          localStorage.setItem('auth_token', registerResponse.token);
+          localStorage.setItem('user', JSON.stringify(registerResponse.user));
+          navigate('/models');
         } else {
           throw loginErr;
         }
       }
-      
     } catch (err) {
       console.error('Connection error:', err);
       setError(err instanceof Error ? err.message : 'Failed to connect wallet');

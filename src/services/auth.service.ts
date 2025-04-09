@@ -24,15 +24,14 @@ export class AuthService {
       expiresAt 
     });
     
+    console.log(`Generated nonce for ${walletAddress.toLowerCase()}: ${nonce}`);
+    
     return {
       nonce,
       expiresAt: expiresAt.getTime()
     };
   }
 
-  /**
-   * Verify wallet signature and authenticate user
-   */
   async connectWallet(data: ConnectRequest): Promise<AuthResponse> {
     const { walletAddress, signature } = data;
     
@@ -51,20 +50,12 @@ export class AuthService {
     
     // Create the message that was signed
     const message = `Sign this message to authenticate with FileCoin Model Hub: ${storedNonce.nonce}`;
+    console.log(`Verifying message: "${message}" for ${walletAddress}`);
     
     try {
-      // Handle different signature formats
-      let signatureToVerify = signature;
-      
-      // If signature starts with '0x' but doesn't have a recovery id, try to add it
-      if (signature.startsWith('0x') && signature.length === 130) {
-        // Add recovery id 27 (0x1b) - This is a common default
-        signatureToVerify = signature + '1b';
-        console.log('Added recovery id to signature');
-      }
-      
       // Verify the signature
-      const recoveredAddress = ethers.verifyMessage(message, signatureToVerify);
+      const recoveredAddress = ethers.verifyMessage(message, signature);
+      console.log(`Recovered address: ${recoveredAddress}, Expected: ${walletAddress}`);
       
       if (recoveredAddress.toLowerCase() !== walletAddress.toLowerCase()) {
         throw new Error('Invalid signature');
@@ -74,38 +65,37 @@ export class AuthService {
       throw new Error(`Invalid signature: ${error.message}`);
     }
     
-    // Clean up used nonce
-    nonceStore.delete(walletAddress.toLowerCase());
-    
-    // Find or create user
+    // Find user
     let user = await prisma.user.findUnique({
       where: { walletAddress: walletAddress }
     });
     
-    if (!user) {
+    // Only delete the nonce if we're done with it
+    if (user) {
+      // User exists, we can delete the nonce
+      nonceStore.delete(walletAddress.toLowerCase());
+      
+      // Generate JWT token
+      const token = jwt.sign(
+        { id: user.id, walletAddress: user.walletAddress },
+        config.jwtSecret as any,
+        { expiresIn: config.jwtExpiresIn } as any
+      );
+      
+      return {
+        token,
+        user: {
+          id: user.id,
+          walletAddress: user.walletAddress,
+          username: user.username
+        }
+      };
+    } else {
+      // We keep the nonce for potential registration
       throw new Error('User not found. Please register first.');
     }
-    
-    // Generate JWT token
-    const token = jwt.sign(
-      { id: user.id, walletAddress: user.walletAddress },
-      config.jwtSecret as any,
-      { expiresIn: config.jwtExpiresIn } as any
-    );
-    
-    return {
-      token,
-      user: {
-        id: user.id,
-        walletAddress: user.walletAddress,
-        username: user.username
-      }
-    };
-}
+  }
 
-  /**
-   * Register new user
-   */
   async registerUser(data: RegisterRequest): Promise<AuthResponse> {
     const { walletAddress, signature, username, bio } = data;
     
@@ -121,11 +111,19 @@ export class AuthService {
       throw new Error('Nonce expired. Please request a new nonce.');
     }
     
-    const message = `Sign this message to register with FileCoin Model Hub: ${storedNonce.nonce}`;
-    const recoveredAddress = ethers.verifyMessage(message, signature);
+    const message = `Sign this message to authenticate with FileCoin Model Hub: ${storedNonce.nonce}`;
+    console.log(`Verifying registration message: "${message}" for ${walletAddress}`);
     
-    if (recoveredAddress.toLowerCase() !== walletAddress.toLowerCase()) {
-      throw new Error('Invalid signature');
+    try {
+      const recoveredAddress = ethers.verifyMessage(message, signature);
+      console.log(`Registration - Recovered address: ${recoveredAddress}, Expected: ${walletAddress}`);
+      
+      if (recoveredAddress.toLowerCase() !== walletAddress.toLowerCase()) {
+        throw new Error('Invalid signature');
+      }
+    } catch (error: any) {
+      console.error('Registration signature verification error:', error);
+      throw new Error(`Invalid signature: ${error.message}`);
     }
     
     // Clean up used nonce
