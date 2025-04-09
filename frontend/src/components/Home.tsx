@@ -59,7 +59,7 @@ const Home: React.FC = () => {
       const { nonce } = await authService.getNonce(walletAddress);
       
       // Create the message to sign
-      const message = `Sign this message to authenticate with Everest Model Hub: ${nonce}`;
+      const message = `Sign this message to authenticate with FileCoin Model Hub: ${nonce}`;
       
       // Request signature from the user
       const signature = await (window as any).ethereum.request({
