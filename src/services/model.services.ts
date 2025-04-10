@@ -1,5 +1,3 @@
-// src/services/model.service.ts
-
 import { PrismaClient, Model, ModelVersion } from '@prisma/client';
 import { ModelFilter, ModelCreateDto, VersionCreateDto } from '../interfaces/model.interface';
 import { StorageService } from './storage.services';

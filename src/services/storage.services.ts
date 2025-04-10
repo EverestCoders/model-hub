@@ -1,20 +1,20 @@
-import fs from 'fs';
-import path from 'path';
-import crypto from 'crypto';
-import { PrismaClient } from '@prisma/client';
-import { v4 as uuidv4 } from 'uuid';
-import lighthouse from '@lighthouse-web3/sdk';
-import archiver from 'archiver';
+import fs from "fs";
+import path from "path";
+import crypto from "crypto";
+import { PrismaClient } from "@prisma/client";
+import { v4 as uuidv4 } from "uuid";
+import lighthouse from "@lighthouse-web3/sdk";
+import archiver from "archiver";
 
 // Set a timeout for Lighthouse uploads to prevent hanging
 const UPLOAD_TIMEOUT_MS = 60000; // 60 seconds
 
 // Option to use mock data for testing
-const USE_MOCK_LIGHTHOUSE = process.env.USE_MOCK_LIGHTHOUSE === 'true';
+const USE_MOCK_LIGHTHOUSE = process.env.USE_MOCK_LIGHTHOUSE === "true";
 
 export class StorageService {
   private prisma: PrismaClient;
-  
+
   constructor(prisma: PrismaClient) {
     this.prisma = prisma;
   }
@@ -25,39 +25,53 @@ export class StorageService {
       const tempId = uuidv4();
       const tempDirPath = path.join(process.cwd(), 'uploads', 'processing', tempId);
       const zipDir = path.join(process.cwd(), 'uploads', 'zip');
-
+  
       fs.mkdirSync(tempDirPath, { recursive: true });
       fs.mkdirSync(zipDir, { recursive: true });
-
-      // Create a zip file path
-      const zipPath = path.join(zipDir, `${tempId}.zip`);
-
+  
+      // Create a unique zip file name with timestamp to avoid CID collisions
+      const zipFileName = `${tempId}-${Date.now()}.zip`;
+      const zipPath = path.join(zipDir, zipFileName);
+  
       console.log("Creating zip file at:", zipPath);
       
       // Write all files to the temporary directory first
       let totalSize = 0;
+      console.log(`Writing ${modelFiles.length} files to temp directory:`);
+      
       for (const file of modelFiles) {
+        console.log("File to be zipped", file)
         const filePath = path.join(tempDirPath, file.originalname);
         fs.writeFileSync(filePath, file.buffer);
         totalSize += file.size;
+        console.log(`Written ${file.originalname} (${file.size} bytes)`);
       }
       
-      // Create a zip file
+      // Create a zip file - in the modelFiles excluding metadata.json
       await this.createZipFromDirectory(tempDirPath, zipPath);
       
       // Calculate the zip file size
       const zipStats = fs.statSync(zipPath);
       totalSize = zipStats.size;
       console.log(`Zip file created, size: ${totalSize} bytes (${(totalSize / (1024 * 1024)).toFixed(2)} MB)`);
-
+  
+      // Verify the zip file is not empty
+      if (totalSize <= 100) { // If less than 100 bytes, something is wrong
+        console.warn('WARNING: Zip file is suspiciously small!');
+        
+        // Check what's in the zip
+        console.log('Files in temp directory:');
+        console.log(fs.readdirSync(tempDirPath));
+      }
+  
       let filecoinCid: string;
       let metadataCid: string;
       
       if (USE_MOCK_LIGHTHOUSE) {
         console.log('Using mock Lighthouse mode for testing');
-        // Generate mock CIDs for testing
-        filecoinCid = 'bafy' + crypto.randomBytes(30).toString('hex');
-        metadataCid = 'bafy' + crypto.randomBytes(30).toString('hex');
+        // Generate mock CIDs for testing with timestamp to ensure uniqueness
+        filecoinCid = 'bafy' + crypto.randomBytes(30).toString('hex') + Date.now();
+        metadataCid = 'bafy' + crypto.randomBytes(30).toString('hex') + Date.now();
       } else {
         console.log(`Uploading zip file to Lighthouse...`);
         
@@ -84,17 +98,17 @@ export class StorageService {
           
           // Fallback to mock data if upload fails
           console.log('Falling back to mock CID due to upload failure');
-          filecoinCid = 'bafy' + crypto.randomBytes(30).toString('hex');
+          filecoinCid = 'bafy' + crypto.randomBytes(30).toString('hex') + Date.now();
         }
         
-        // Upload metadata to Lighthouse
+        // Upload metadata to Lighthouse using separate file
         const metadataJson = JSON.stringify(metadata);
-        const metadataPath = path.join(tempDirPath, 'metadata.json');
-        fs.writeFileSync(metadataPath, metadataJson);
+        const standaloneMdPath = path.join(zipDir, `metadata-${tempId}.json`);
+        fs.writeFileSync(standaloneMdPath, metadataJson);
         
         try {
           // Wrap the metadata upload in a timeout to prevent hanging
-          const metadataPromise = lighthouse.upload(metadataPath, process.env.LIGHTHOUSE_API_KEY as string);
+          const metadataPromise = lighthouse.upload(standaloneMdPath, process.env.LIGHTHOUSE_API_KEY as string);
           
           const metadataResponse = await Promise.race([
             metadataPromise,
@@ -115,7 +129,14 @@ export class StorageService {
           
           // Fallback to mock data if upload fails
           console.log('Falling back to mock metadata CID due to upload failure');
-          metadataCid = 'bafy' + crypto.randomBytes(30).toString('hex');
+          metadataCid = 'bafy' + crypto.randomBytes(30).toString('hex') + Date.now();
+        }
+        
+        // Clean up metadata file
+        try {
+          fs.unlinkSync(standaloneMdPath);
+        } catch (err) {
+          console.warn('Failed to clean up standalone metadata file:', err);
         }
       }
       
@@ -145,28 +166,56 @@ export class StorageService {
   }
 
   // Helper method to create a zip file from a directory
-  private createZipFromDirectory(sourceDir: string, outputPath: string): Promise<void> {
+  private createZipFromDirectory(
+    sourceDir: string,
+    outputPath: string
+  ): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
         const output = fs.createWriteStream(outputPath);
-        const archive = archiver('zip', {
-          zlib: { level: 9 } // Maximum compression
+        const archive = archiver("zip", {
+          zlib: { level: 9 }, // Maximum compression
         });
-        
-        output.on('close', () => {
+
+        output.on("close", () => {
           console.log(`Archive created: ${archive.pointer()} total bytes`);
           resolve();
         });
-        
-        archive.on('error', (err) => {
+
+        archive.on("error", (err) => {
           reject(err);
         });
-        
+
         archive.pipe(output);
-        
+
+        // List all files in the directory
+        const files = fs.readdirSync(sourceDir);
+        console.log(`Files to zip: ${files.join(", ")}`);
+
+        // Add each file to the archive individually
+        files.forEach((file) => {
+          const filePath = path.join(sourceDir, file);
+          const stats = fs.statSync(filePath);
+
+          if (stats.isDirectory()) {
+            // Add directories recursively
+            archive.directory(filePath, file);
+            console.log(`Added directory: ${file}`);
+          } else {
+            // Add files
+            archive.file(filePath, { name: file });
+            console.log(`Added file: ${file} (${stats.size} bytes)`);
+          }
+        });
+
+        // Check if we actually added any files
+        if (files.length === 0) {
+          console.warn("WARNING: No files found to add to the zip!");
+        }
+
         // Add all files from the source directory to the zip
         archive.directory(sourceDir, false);
-        
+
         archive.finalize();
       } catch (error) {
         reject(error);
@@ -182,28 +231,32 @@ export class StorageService {
   async getMetadata(metadataCid: string): Promise<any> {
     // In a real-world scenario, this would fetch the metadata from IPFS
     try {
-      const response = await fetch(`https://gateway.lighthouse.storage/ipfs/${metadataCid}`);
+      const response = await fetch(
+        `https://gateway.lighthouse.storage/ipfs/${metadataCid}`
+      );
       if (!response.ok) {
         throw new Error(`Failed to fetch metadata: ${response.statusText}`);
       }
       return await response.json();
     } catch (error) {
-      console.error('Error fetching metadata:', error);
+      console.error("Error fetching metadata:", error);
       // Return a mock response if fetch fails
       return {
         createdAt: new Date().toISOString(),
-        format: 'safetensors',
-        type: 'diffusion'
+        format: "safetensors",
+        type: "diffusion",
       };
     }
   }
 
-  getStorageDeals(cid: string): Promise<{ activeDeals: number, totalDeals: number }> {
+  getStorageDeals(
+    cid: string
+  ): Promise<{ activeDeals: number; totalDeals: number }> {
     // In a real-world scenario, this would fetch actual deal information
     // For now, return mock data
     return Promise.resolve({
       activeDeals: 3,
-      totalDeals: 5
+      totalDeals: 5,
     });
   }
 }
