@@ -61,7 +61,7 @@ export class StorageService {
         
         // Check what's in the zip
         console.log('Files in temp directory:');
-        console.log(fs.readdirSync(tempDirPath));
+        fs.readdirSync(tempDirPath);
       }
   
       let filecoinCid: string;

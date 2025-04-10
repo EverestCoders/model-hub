@@ -32,6 +32,11 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
       id: decoded.id,
       walletAddress: decoded.walletAddress
     };
+
+//   req.user = {
+//   id: "1f8bacf8-b719-496f-a996-b3d0f2c79f44",
+//   walletAddress: "0x8945dede1d19a582381c88d1ee6fe5e503d65f56"
+// };
     
     next();
   } catch (error) {

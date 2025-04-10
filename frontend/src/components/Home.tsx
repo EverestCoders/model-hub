@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '../components/ui/button';
+import { Button } from './ui/button';
 import { authService } from '../services/auth.service';
+import Details from './Details';
 
 // Simple icons for UI
 const Briefcase = () => (
@@ -95,7 +96,8 @@ const Home: React.FC = () => {
           });
           
           // Generate a username
-          const username = `user_${walletAddress.substring(2, 8)}`;
+          const username = `0x${walletAddress.substring(2, 8)}`;
+          
           
           console.log("Registering with signature");
           const registerResponse = await authService.register(
@@ -120,7 +122,7 @@ const Home: React.FC = () => {
   };
 
   return (
-    <div className="h-screen bg-white">
+    <div className="h-screen bg-white"> 
       {/* Navigation */}
       <header className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
@@ -182,7 +184,7 @@ const Home: React.FC = () => {
 
           {/* Connect Wallet Button */}
           <Button 
-            className="bg-blue-500 hover:bg-blue-600 text-white py-3 px-6 rounded-md text-lg font-medium"
+            className="bg-blue-500 hover:bg-blue-600 text-white py-3 px-6 rounded-md text-lg font-medium h-10"
             onClick={connectWallet}
             disabled={isConnecting}
           >
@@ -199,6 +201,8 @@ const Home: React.FC = () => {
         {/* Divider */}
         <div className="max-w-4xl mx-auto border-t border-gray-200 mt-16"></div>
       </main>
+
+      <Details />
     </div>
   );
 };

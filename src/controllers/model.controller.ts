@@ -55,11 +55,6 @@ export class ModelController {
 
       console.log("req files", req.files)
 
-            
-      // if (!req.file || !Array.isArray(req.files) || req.files.length === 0) {
-      //   res.status(400).json({ error: 'Model file is required' });
-
-      
       if (!Array.isArray(req.files) || req.files.length === 0) {
         res.status(400).json({ error: 'Model file is required helllo' });
         return;
@@ -96,7 +91,7 @@ export class ModelController {
         category: req.body.category,
         tags: req.body.tags,
         parameters: req.body.parameters ? parseInt(req.body.parameters) : undefined,
-        modelFile: req.file ? req.file : []
+        modelFile: req.files
       };
 
       console.log("Calling model service");
