@@ -2,6 +2,10 @@ import { Request, Response } from 'express';
 import { ModelService } from '../services/model.services';
 import { PrismaClient } from '@prisma/client';
 import { ModelFilter, ModelCreateDto, VersionCreateDto } from '../interfaces/model.interface';
+import fs from 'fs';
+import path from 'path';
+import { v4 as uuidv4 } from 'uuid';
+import archiver from 'archiver';
 
 const prisma = new PrismaClient();
 const modelService = new ModelService(prisma);
@@ -47,11 +51,29 @@ export class ModelController {
     try {
       // Get user ID from authenticated request
       const userId = (req as any).user.id;
+      console.log("req body", req.body)
       
-      if (!req.file) {
+      if (!req.file || !Array.isArray(req.files) || req.files.length === 0) {
         res.status(400).json({ error: 'Model file is required' });
         return;
       }
+
+      const modelFiles = req.files as Express.Multer.File[];
+      const tempId = uuidv4();
+      const tempDir = path.join(process.cwd(), 'uploads', 'temp', tempId);
+      const zipDir = path.join(process.cwd(), 'uploads', 'zip');
+
+      fs.mkdirSync(tempDir, { recursive: true });
+      fs.mkdirSync(zipDir, { recursive: true });
+
+      const zipPath = path.join(zipDir, `${tempId}.zip`);
+
+      for (const file of modelFiles) {
+        const filePath = path.join(tempDir, file.originalname);
+        fs.writeFileSync(filePath, file.buffer);
+      }
+
+      const zipFile = await this.createZipFromDirectory(tempDir, zipPath);
 
       const modelData: ModelCreateDto = {
         name: req.body.name,
@@ -67,11 +89,61 @@ export class ModelController {
       };
 
       const model = await modelService.createModel(userId, modelData);
+
+      try{
+        fs.rmSync(tempDir, { recursive: true, force: true });
+        fs.unlinkSync(zipPath);
+      } catch (cleanupError) {
+        console.error('Error cleaning up temporary files:', cleanupError);
+      }
       res.status(201).json(model);
     } catch (error) {
       console.error('Failed to create model:', error);
       res.status(500).json({ error: 'Failed to create model' });
     }
+  }
+
+  private createZipFromDirectory(sourceDir: string, outputPath: string): Promise<Express.Multer.File> {
+    return new Promise((resolve, reject) => {
+      try {
+        const output = fs.createWriteStream(outputPath);
+        const archive = archiver('zip', {
+          zlib: { level: 9 } // Maximum compression
+        });
+        
+        output.on('close', () => {
+          console.log(`Archive created: ${archive.pointer()} total bytes`);
+          
+          // Read the zip file as a buffer
+          const zipBuffer = fs.readFileSync(outputPath);
+          
+          // Create a virtual file object for multer
+          const zipFile: Express.Multer.File = {
+            fieldname: 'modelFile',
+            originalname: 'model.zip',
+            encoding: '7bit',
+            mimetype: 'application/zip',
+            buffer: zipBuffer,
+            size: zipBuffer.length
+          } as Express.Multer.File;
+          
+          resolve(zipFile);
+        });
+        
+        archive.on('error', (err) => {
+          reject(err);
+        });
+        
+        archive.pipe(output);
+        
+        // Add the entire directory to the zip
+        archive.directory(sourceDir, false);
+        
+        archive.finalize();
+      } catch (error) {
+        reject(error);
+      }
+    });
   }
 
   async createModelVersion(req: Request, res: Response): Promise<void> {
