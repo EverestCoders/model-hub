@@ -20,8 +20,8 @@ router.get('/:id/versions', modelController.getModelVersions.bind(modelControlle
 router.get('/:id/download/:versionId?', modelController.downloadModel.bind(modelController));
 
 // Protected routes that require authentication
-router.post('/', authMiddleware, upload.array('modelFiles', 20), modelController.createModel.bind(modelController));
-router.post('/:id/versions', authMiddleware, upload.array('modelFiles', 20), modelController.createModelVersion.bind(modelController));
+router.post('/', authMiddleware, upload.array('modelFile', 20), modelController.createModel.bind(modelController));
+router.post('/:id/versions', authMiddleware, upload.array('modelFile', 20), modelController.createModelVersion.bind(modelController));
 router.post('/:id/rate', authMiddleware, modelController.rateModel.bind(modelController));
 
 export default router;

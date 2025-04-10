@@ -1,2 +1,2 @@
 -- DropIndex
-DROP INDEX "ModelVersion_filecoinCid_key";
+DROP INDEX IF EXISTS "ModelVersion_filecoinCid_key";

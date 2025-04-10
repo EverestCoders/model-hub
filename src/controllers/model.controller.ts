@@ -52,12 +52,20 @@ export class ModelController {
       // Get user ID from authenticated request
       const userId = (req as any).user.id;
       console.log("req body", req.body)
+
+      console.log("req files", req.files)
+
+            
+      // if (!req.file || !Array.isArray(req.files) || req.files.length === 0) {
+      //   res.status(400).json({ error: 'Model file is required' });
+
       
-      if (!req.file || !Array.isArray(req.files) || req.files.length === 0) {
-        res.status(400).json({ error: 'Model file is required' });
+      if (!Array.isArray(req.files) || req.files.length === 0) {
+        res.status(400).json({ error: 'Model file is required helllo' });
         return;
       }
 
+      console.log("Processing model files");
       const modelFiles = req.files as Express.Multer.File[];
       const tempId = uuidv4();
       const tempDir = path.join(process.cwd(), 'uploads', 'temp', tempId);
@@ -67,11 +75,14 @@ export class ModelController {
       fs.mkdirSync(zipDir, { recursive: true });
 
       const zipPath = path.join(zipDir, `${tempId}.zip`);
+      console.log("Created temp directories");
 
       for (const file of modelFiles) {
         const filePath = path.join(tempDir, file.originalname);
         fs.writeFileSync(filePath, file.buffer);
       }
+      console.log("Wrote files to temp directory");
+      console.log("Created zip file");
 
       const zipFile = await this.createZipFromDirectory(tempDir, zipPath);
 
@@ -85,14 +96,18 @@ export class ModelController {
         category: req.body.category,
         tags: req.body.tags,
         parameters: req.body.parameters ? parseInt(req.body.parameters) : undefined,
-        modelFile: req.file
+        modelFile: req.file ? req.file : []
       };
 
+      console.log("Calling model service");
       const model = await modelService.createModel(userId, modelData);
+      console.log("Model created:", model);
+
 
       try{
         fs.rmSync(tempDir, { recursive: true, force: true });
         fs.unlinkSync(zipPath);
+        console.log("Cleaned up temp files");
       } catch (cleanupError) {
         console.error('Error cleaning up temporary files:', cleanupError);
       }
