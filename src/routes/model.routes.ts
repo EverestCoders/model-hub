@@ -24,4 +24,7 @@ router.post('/', authMiddleware, upload.array('modelFile', 20), modelController.
 router.post('/:id/versions', authMiddleware, upload.array('modelFile', 20), modelController.createModelVersion.bind(modelController));
 router.post('/:id/rate', authMiddleware, modelController.rateModel.bind(modelController));
 
+router.get('/:id/readme/:versionId?', modelController.getModelReadme.bind(modelController));
+router.get('/:id/config/:versionId?', modelController.getModelConfig.bind(modelController));
+
 export default router;
