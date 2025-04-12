@@ -160,4 +160,28 @@ export const modelService = {
       throw error;
     }
   },
+
+  async createModelVersion(modelId: string, versionData: FormData): Promise<any> {
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        throw new Error('Authentication required to create model versions');
+      }
+  
+      const response = await axios.post(
+        `${API_BASE_URL}/models/${modelId}/versions`,
+        versionData,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error(`Error creating new version for model ${modelId}:`, error);
+      throw error;
+    }
+  }
 }

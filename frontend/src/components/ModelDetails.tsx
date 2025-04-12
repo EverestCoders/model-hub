@@ -3,6 +3,10 @@ import { useParams } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import { modelService } from "../services/model.service";
 import ModelFileExplorer from "./ModelFileExplorer";
+import { History, Plus, X } from "lucide-react";
+import { Button } from "./ui/button";
+import VersionUpdateForm from "./VersionUpdateForm";
+import { Badge } from "./ui/badge";
 
 interface ModelFile {
   filename: string;
@@ -68,6 +72,12 @@ export default function ModelDetails() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("readme");
+  const [showVersionForm, setShowVersionForm] = useState<boolean>(false);
+  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
+
+  const token = localStorage.getItem('auth_token'); 
+  const userString = localStorage.getItem('user');
+  const user = userString ? JSON.parse(userString) : null;
 
   useEffect(() => {
     const fetchModelDetails = async () => {
@@ -148,6 +158,42 @@ export default function ModelDetails() {
     return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   };
 
+  const refreshData = async () => {
+    try {
+      if (!id) return;
+      
+      setLoading(true);
+      
+      // Fetch model details
+      const modelData = await modelService.getModelById(id);
+      setModel(modelData);
+  
+      // Fetch versions
+      const versionsData = await modelService.getModelVersions(id);
+      setVersions(versionsData.versions);
+      
+      // Fetch README if available
+      try {
+        const readmeData = await modelService.getModelReadme(id);
+        setReadme(readmeData.content);
+      } catch (err) {
+        console.log("No README found");
+      }
+  
+      // Fetch config if available
+      try {
+        const configData = await modelService.getModelConfig(id);
+        setConfig(configData.content);
+      } catch (err) {
+        console.log("No config found");
+      }
+    } catch (err) {
+      console.error("Error refreshing data:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (loading) {
     return <div className="container mx-auto py-8">Loading model details...</div>;
   }
@@ -172,8 +218,8 @@ export default function ModelDetails() {
               </div>
 
               {/* Header Section */}
-              <div className="flex justify-between items-start mb-6">
-                <div className="flex gap-4">
+              <div className="flex flex-col md:flex-row justify-between items-start gap-4 mb-6">
+                <div className="flex gap-4 items-center">
                   <div className="h-14 w-14 bg-purple-100 rounded-lg flex items-center justify-center">
                     <span className="text-2xl">{getCategoryIcon(model.category)}</span>
                   </div>
@@ -184,13 +230,46 @@ export default function ModelDetails() {
                     </p>
                   </div>
                 </div>
-                <button 
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-                  onClick={handleDownload}
-                >
-                  Download
-                </button>
+                <div className="flex gap-2">
+                  {/* Show Add Version button only for the model owner */}
+                  {user && model.creator.id === user.id && (
+                    <Button 
+                      variant={showVersionForm ? "outline" : "secondary"}
+                      onClick={() => setShowVersionForm(!showVersionForm)}
+                    >
+                      {showVersionForm ? (
+                        <>
+                          <X className="mr-1 h-4 w-4" /> Cancel
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="mr-1 h-4 w-4" /> Add Version
+                        </>
+                      )}
+                    </Button>
+                  )}
+
+                  <Button 
+                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                    onClick={handleDownload}
+                  >
+                    Download
+                  </Button>
+                </div>
               </div>
+
+              {showVersionForm && (
+                <div className="mb-8">
+                  <VersionUpdateForm 
+                    modelId={model.id} 
+                    onSuccess={() => {
+                      setShowVersionForm(false);
+                      refreshData();
+                    }}
+                    onCancel={() => setShowVersionForm(false)}
+                  />
+                </div>
+              )}
 
               {/* Model Details */}
               <div className="space-y-5 mb-8">
@@ -285,16 +364,43 @@ export default function ModelDetails() {
                 <div className="py-4">
                   {activeTab === "readme" && (
                     <>
-                      {readme ? (
-                        <div className="prose prose-sm max-w-none">
+                    {readme ? (
+                      <div>
+                        {/* Add a version indicator if not showing latest version */}
+                        {model.latestVersion && model.latestVersion.id !== selectedVersionId && selectedVersionId && (
+                          <div className="mb-4 p-2 bg-blue-50 border border-blue-200 rounded-md text-sm">
+                            Viewing README for Version {
+                              versions.find(v => v.id === selectedVersionId)?.versionNumber || '?'
+                            }
+                            <Button 
+                              variant="link" 
+                              size="sm" 
+                              className="ml-2" 
+                              onClick={() => {
+                                // Reset to latest version
+                                if (id) {
+                                  modelService.getModelReadme(id).then(
+                                    data => setReadme(data.content)
+                                  );
+                                  setSelectedVersionId(null);
+                                }
+                              }}
+                            >
+                              View Latest
+                            </Button>
+                          </div>
+                        )}
+                        
+                        <div className="prose prose-sm max-w-none prose-headings:font-semibold prose-headings:text-gray-900 prose-p:text-gray-700 prose-a:text-blue-600">
                           <ReactMarkdown>{readme}</ReactMarkdown>
                         </div>
-                      ) : (
-                        <div className="bg-gray-50 border rounded-md p-6 text-center">
-                          <p className="text-gray-500">No README file available for this model.</p>
-                        </div>
-                      )}
-                    </>
+                      </div>
+                    ) : (
+                      <div className="bg-gray-50 border border-gray-200 rounded-md p-6 text-center">
+                        <p className="text-gray-500">No README file available for this model.</p>
+                      </div>
+                    )}
+                  </>
                   )}
 
                   {activeTab === "config" && (
@@ -317,19 +423,19 @@ export default function ModelDetails() {
                     <div className="border rounded-md divide-y">
                       {versions.length > 0 ? (
                         versions.map((version, index) => (
-                          <div key={version.id} className="p-4 hover:bg-gray-50 transition-colors">
+                          <div key={version.id} className="p-4 hover:bg-gray-50/50 transition-colors">
                             <div className="flex justify-between items-start">
                               <div className="flex items-start gap-3">
                                 <div className="bg-blue-100 rounded-full p-2 mt-1">
-                                  <span className="text-blue-600">V</span>
+                                  <History className="h-4 w-4 text-blue-600" />
                                 </div>
                                 <div>
                                   <div className="flex items-center">
                                     <h3 className="text-sm font-medium">Version {version.versionNumber}</h3>
                                     {index === 0 && (
-                                      <span className="ml-2 bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded">
+                                      <Badge className="ml-2 bg-green-100 text-green-700 border-green-200 text-xs">
                                         Latest
-                                      </span>
+                                      </Badge>
                                     )}
                                   </div>
                                   <p className="text-xs text-gray-500 mt-1">
@@ -339,39 +445,66 @@ export default function ModelDetails() {
                                     <p className="text-sm mt-2">{version.commitMessage}</p>
                                   )}
                                   <div className="flex gap-2 mt-2 text-xs">
-                                    <span className="bg-gray-50 border px-2 py-0.5 rounded">
+                                    <Badge variant="outline" className="bg-gray-50">
                                       {formatBytes(version.sizeBytes)}
-                                    </span>
+                                    </Badge>
                                     {version.parameters && (
-                                      <span className="bg-gray-50 border px-2 py-0.5 rounded">
+                                      <Badge variant="outline" className="bg-gray-50">
                                         {formatNumber(version.parameters)} parameters
-                                      </span>
+                                      </Badge>
                                     )}
                                   </div>
                                 </div>
                               </div>
-                              <button 
-                                className="border px-3 py-1 rounded text-sm hover:bg-gray-50"
-                                onClick={() => {
-                                  if (id) {
-                                    modelService.downloadModel(id, version.id).then(
-                                      response => window.open(response.downloadUrl, "_blank")
-                                    );
-                                  }
-                                }}
-                              >
-                                Download
-                              </button>
+                              <div className="flex space-x-2">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={() => {
+                                    if (id) {
+                                      // Set the selected version ID when viewing a specific version
+                                      setSelectedVersionId(version.id);
+                                      
+                                      // Set README and config to show this specific version
+                                      modelService.getModelReadme(id, version.id).then(
+                                        data => setReadme(data.content)
+                                      ).catch(() => setReadme(null));
+                                      
+                                      modelService.getModelConfig(id, version.id).then(
+                                        data => setConfig(data.content)
+                                      ).catch(() => setConfig(null));
+                                      
+                                      // Switch to README tab to show content
+                                      setActiveTab("readme");
+                                    }
+                                  }}
+                                >
+                                  View Files
+                                </Button>
+                                <Button 
+                                  variant="secondary" 
+                                  size="sm" 
+                                  onClick={() => {
+                                    if (id) {
+                                      modelService.downloadModel(id, version.id).then(
+                                        response => window.open(response.downloadUrl, "_blank")
+                                      );
+                                    }
+                                  }}
+                                >
+                                  Download
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         ))
                       ) : (
-                        <div className="p-6 text-center">
-                          <p className="text-gray-500">No versions available for this model.</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
+          <div className="p-6 text-center">
+            <p className="text-gray-500">No versions available for this model.</p>
+          </div>
+        )}
+  </div>
+)}
                 </div>
               </div>
             </div>
