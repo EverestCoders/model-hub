@@ -212,7 +212,8 @@ export class ModelController {
       const userId = (req as any).user.id;
       const { id } = req.params;
 
-      if (!req.file) {
+
+      if (req.files?.length === 0) {
         res.status(400).json({ error: "Model file is required" });
         return;
       }
@@ -222,7 +223,7 @@ export class ModelController {
         parameters: req.body.parameters
           ? parseInt(req.body.parameters)
           : undefined,
-        modelFile: req.file,
+        modelFile: req.files as Express.Multer.File[],
       };
 
       const version = await modelService.createModelVersion(
