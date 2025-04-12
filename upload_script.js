@@ -71,15 +71,15 @@ async function uploadModelWithMetadata() {
     const form = new FormData();
     
     // Add all the metadata fields
-    form.append('name', 'Google/Flan-T5-small');
-    form.append('description', 'If you already know T5, FLAN-T5 is just better at everything. For the same number of parameters, these models have been fine-tuned on more than 1000 additional tasks covering also more languages. Here is the Github Repo https://github.com/google-research/t5x');
+    form.append('name', 'google-bert/bert-base-uncased');
+    form.append('description', 'BERT is a transformers model pretrained on a large corpus of English data in a self-supervised fashion. This means it was pretrained on the raw texts only, with no humans labeling them in any way (which is why it can use lots of publicly available data) with an automatic process to generate inputs and labels from those texts.');
     form.append('licenseType', 'Apache 2.0');
     form.append('commercialUse', 'true');
     form.append('attributionRequired', 'true');
     form.append('royaltyPercentage', '0');
-    form.append('category', 'language, text, NLP, multilingual');
+    form.append('category', 'language, text, NLP');
     form.append('tags', 'NLP, AI, Google, Text');
-    form.append('parameters', '78000000');
+    form.append('parameters', '110000000');
     
     // Folder containing model files
     const modelFolderPath = path.join(__dirname, 'flanT5');
