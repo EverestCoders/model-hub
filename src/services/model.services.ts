@@ -452,4 +452,38 @@ export class ModelService {
 
     return { success: true };
   }
+
+  async getModelReadme(modelId: string, versionId?: string): Promise<string | null> {
+    try {
+      const version = await this.prisma.modelVersion.findFirst({
+        where: versionId ? 
+          { id: versionId, modelId: modelId } : 
+          { modelId: modelId },
+        orderBy: versionId ? undefined : { versionNumber: 'desc' },
+        select: { readmeContent: true }
+      });
+      
+      return version?.readmeContent || null;
+    } catch (error) {
+      console.error('Failed to get model README:', error);
+      throw new Error('Failed to retrieve README content');
+    }
+  }
+  
+  async getModelConfig(modelId: string, versionId?: string): Promise<string | null> {
+    try {
+      const version = await this.prisma.modelVersion.findFirst({
+        where: versionId ? 
+          { id: versionId, modelId: modelId } : 
+          { modelId: modelId },
+        orderBy: versionId ? undefined : { versionNumber: 'desc' },
+        select: { configContent: true }
+      });
+      
+      return version?.configContent || null;
+    } catch (error) {
+      console.error('Failed to get model configuration:', error);
+      throw new Error('Failed to retrieve configuration content');
+    }
+  }
 }

@@ -63,7 +63,10 @@ model ModelVersion {
   txHash          String?
   sizeBytes       BigInt?
   parameters      Int?
-
+  
+  readmeContent   String?      
+  configContent   String? 
+  
   // Relations
   storageDeals    StorageDeal[]
   downloads       Download[]

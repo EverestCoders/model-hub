@@ -143,7 +143,7 @@ export default function UploadModelForm() {
   const licenseTypes = ["MIT", "Apache 2.0", "GPL", "CC BY-NC 4.0", "BSD-3", "Custom"];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-screen bg-background py-6 px-20">
       <Navbar />
       <div className="container max-w-4xl mx-auto px-4 py-8">
         <div className="flex items-center gap-2 mb-2">

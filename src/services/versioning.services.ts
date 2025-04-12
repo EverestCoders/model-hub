@@ -24,6 +24,27 @@ export class VersioningService {
     metadata: any, 
     commitMessage?: string
   ): Promise<ModelVersion> {
+
+    // find readme and config files
+    const readmeFile = modelFiles.find(file => 
+      file.originalname.toLowerCase() === 'readme.md');
+    
+    const configFile = modelFiles.find(file => 
+      file.originalname.toLowerCase().endsWith('.json') || 
+      file.originalname.toLowerCase().endsWith('.yaml') ||
+      file.originalname.toLowerCase().endsWith('.yml'));
+    
+    // Extract content if found
+    let readmeContent = null;
+    if (readmeFile) {
+      readmeContent = readmeFile.buffer.toString('utf8');
+    }
+    
+    let configContent = null;
+    if (configFile) {
+      configContent = configFile.buffer.toString('utf8');
+    }
+
     // Upload to storage
     const { filecoinCid, metadataCid, hash, sizeBytes } = await this.storageService.uploadModelDirectory(modelFiles, metadata);
     
@@ -55,6 +76,8 @@ export class VersioningService {
         commitMessage,
         txHash,
         sizeBytes,
+        readmeContent,
+        configContent,
         parameters: metadata.parameters || null
       }
     });
@@ -90,6 +113,25 @@ export class VersioningService {
     metadata: any, 
     commitMessage?: string
   ): Promise<ModelVersion> {
+
+    const readmeFile = modelFiles.find(file => 
+      file.originalname.toLowerCase() === 'readme.md');
+    
+    const configFile = modelFiles.find(file => 
+      file.originalname.toLowerCase().endsWith('.json') || 
+      file.originalname.toLowerCase().endsWith('.yaml') ||
+      file.originalname.toLowerCase().endsWith('.yml'));
+    
+    let readmeContent = null;
+    if (readmeFile) {
+      readmeContent = readmeFile.buffer.toString('utf8');
+    }
+    
+    let configContent = null;
+    if (configFile) {
+      configContent = configFile.buffer.toString('utf8');
+    }
+
     // Get the model with latest version
     const model = await this.prisma.model.findUnique({
       where: { id: modelId },
@@ -131,7 +173,9 @@ export class VersioningService {
         commitMessage,
         txHash,
         sizeBytes,
-        parameters: metadata.parameters || null
+        parameters: metadata.parameters || null,
+        readmeContent,
+        configContent
       }
     });
 
