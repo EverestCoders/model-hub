@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
 import { authService } from '../services/auth.service';
 import Details from './Details';
@@ -132,10 +132,9 @@ const Home: React.FC = () => {
           </div>
 
           <nav className="hidden md:flex items-center space-x-6">
-            <a href="#" className="text-sm font-medium">Home</a>
-            <a href="#" className="text-sm font-medium">Models</a>
-            <a href="#" className="text-sm font-medium">Upload</a>
-            <a href="#" className="text-sm font-medium">Search</a>
+            <Link to="/" className="text-sm font-medium">Home</Link>
+            <Link to = "/models" className="text-sm font-medium">Models</Link>
+            <Link to="/upload" className="text-sm font-medium">Upload</Link>
           </nav>
 
           <Button 

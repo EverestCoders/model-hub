@@ -97,8 +97,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           });
           
           // Generate a username
-          // const username = `0x${walletAddress.substring(2, 8)}...`;
-          const username = `Hello`;
+          const username = `0x${walletAddress.substring(2, 8)}...`;
+          // const username = `Hello`;
           
           // Register new user
           // await register(walletAddress, regSignature, username);

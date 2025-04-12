@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import Home from "./components/Home";
 import Models from "./components/Models";
 import "./App.css";
+import UploadModelForm from "./components/UpladModel";
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -18,8 +19,6 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
 
 function App() {
   return (
-    // <div className="flex justify-center items-center">
-    //   <div className="lg:w-3/5 flex">
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/models" element={<Models />} />
@@ -31,14 +30,11 @@ function App() {
           path="/upload"
           element={
             <ProtectedRoute>
-              <div>Upload Model Page (Coming Soon)</div>
+              <UploadModelForm />
             </ProtectedRoute>
           }
         />
-        <Route path="/search" element={<Models />} />
       </Routes>
-    // </div>
-    // </div>
   );
 }
 

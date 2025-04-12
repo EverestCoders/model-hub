@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Package } from "lucide-react";
 import { Button } from "./ui/button";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { authService } from '../services/auth.service';
 
 const Navbar: React.FC = () => {
@@ -110,27 +110,28 @@ const Navbar: React.FC = () => {
     }
   };
 
+  const location = useLocation();
+  const isActive = (path: string) => location.pathname === path;
+  console.log(location.pathname);
+
   return (
     <header className="flex items-center justify-between mb-12">
-      <div className="flex items-center gap-2">
+      <Link to="/" className="flex items-center gap-2">
         <Package className="h-5 w-5" />
         <span className="font-semibold text-lg">EVEREST MODEL HUB</span>
-      </div>
+      </Link>
       <nav className="hidden md:flex items-center gap-6">
-        <Link to="/" className="text-sm font-medium">
+        <Link to="/" className={`text-sm font-medium ${isActive("/") ? "text-blue-600" : ""}`}>
           Home
         </Link>
-        <Link to="/models" className="text-sm font-medium text-blue-600">
+        <Link to="/models" className={`text-sm font-medium ${isActive("/models") ? "text-blue-600" : ""}`}>
           Explore
         </Link>
         {isConnected && (
-          <Link to="/upload" className="text-sm font-medium">
-            Upload a model
+          <Link to="/upload" className={`text-sm font-medium ${isActive("/upload") ? "text-blue-600" : ""}`}>
+            Upload
           </Link>
         )}
-        <Link to="/search" className="text-sm font-medium">
-          Search
-        </Link>
       </nav>
       <Button 
         variant="default" 
