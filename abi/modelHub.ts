@@ -661,5 +661,5 @@ export const modelHubABI = [
       "stateMutability": "nonpayable",
       "type": "function"
     }
-  ]as const;
+  ] as const;
 

@@ -1,5 +1,3 @@
-// src/middleware/validation.middleware.ts
-
 import { Request, Response, NextFunction } from 'express';
 import { validationResult, ValidationChain } from 'express-validator';
 
