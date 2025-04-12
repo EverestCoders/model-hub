@@ -4,6 +4,7 @@ import Home from "./components/Home";
 import Models from "./components/Models";
 import "./App.css";
 import UploadModelForm from "./components/UpladModel";
+import ModelDetails from "./components/ModelDetails";
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -24,7 +25,7 @@ function App() {
         <Route path="/models" element={<Models />} />
         <Route
           path="/models/:id"
-          element={<div>Model Detail Page (Coming Soon)</div>}
+          element={<ModelDetails />}
         />
         <Route
           path="/upload"
