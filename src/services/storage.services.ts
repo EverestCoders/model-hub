@@ -7,7 +7,7 @@ import lighthouse from "@lighthouse-web3/sdk";
 import archiver from "archiver";
 
 // Set a timeout for Lighthouse uploads to prevent hanging
-const UPLOAD_TIMEOUT_MS = 60000; // 60 seconds
+const UPLOAD_TIMEOUT_MS = 6000000; // 60 seconds
 
 // Option to use mock data for testing
 const USE_MOCK_LIGHTHOUSE = process.env.USE_MOCK_LIGHTHOUSE === "true";
