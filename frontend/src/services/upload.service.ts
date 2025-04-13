@@ -5,7 +5,7 @@ interface ModelResponse {
   version: {
     versionNumber: number;
     filecoinCid: string;
-    metadataCid: string;
+    metadatacid: string;
     id: string;
   };
   createdAt: string;

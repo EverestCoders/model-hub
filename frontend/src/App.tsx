@@ -5,6 +5,8 @@ import Models from "./components/Models";
 import "./App.css";
 import UploadModelForm from "./components/UpladModel";
 import ModelDetails from "./components/ModelDetails";
+import { TransactionQueue } from "./components/TransactionQueue";
+import { useBlockchain, BlockchainProvider } from "./contexts/BlockChainContext";
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -18,8 +20,21 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
   return <>{children}</>;
 };
 
+const BlockchainMonitor: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { transactions } = useBlockchain();
+  
+  return (
+    <>
+      {children}
+      <TransactionQueue transactions={transactions} />
+    </>
+  );
+};
+
 function App() {
   return (
+    <BlockchainProvider>
+      <BlockchainMonitor>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/models" element={<Models />} />
@@ -36,6 +51,8 @@ function App() {
           }
         />
       </Routes>
+      </BlockchainMonitor>
+      </BlockchainProvider>
   );
 }
 

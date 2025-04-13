@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { SubmitHandler, useForm } from "react-hook-form";
 import { z } from "zod";
-import { Package, Upload, AlertCircle, X } from "lucide-react";
+import { Package, Upload, AlertCircle, X, Loader2, CheckIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "./ui/button";
 import {
@@ -28,6 +28,8 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
 import Navbar from "./Navbar";
 import { modelService } from "../services/upload.service";
+import { useBlockchain } from "../contexts/BlockChainContext";
+import { NetworkWarning } from "./NetworkWarning";
 
 // Form validation schema
 const formSchema = z.object({
@@ -56,9 +58,31 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 export default function UploadModelForm() {
+
+  const { 
+    isConnected, 
+    isCorrectNetwork, 
+    networkName, 
+    connectWallet, 
+    switchNetwork,
+    registerModel 
+  } = useBlockchain();
+
   const [files, setFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [blockchainStatus, setBlockchainStatus] = useState<{
+    registering: boolean;
+    success: boolean;
+    error: string | null;
+    modelId: number | null;
+  }>({
+    registering: false,
+    success: false,
+    error: null,
+    modelId: null
+  });
+
   const navigate = useNavigate();
 
   // Initialize form
@@ -95,6 +119,21 @@ export default function UploadModelForm() {
       return;
     }
 
+    // Check blockchain connection
+    if (!isConnected) {
+      try {
+        await connectWallet();
+      } catch (err) {
+        setError("Please connect your wallet to upload models");
+        return;
+      }
+    }
+    
+    if (!isCorrectNetwork) {
+      setError("Please switch to the correct network before uploading");
+      return;
+    }
+
     setIsUploading(true);
     setError(null);
 
@@ -118,6 +157,42 @@ export default function UploadModelForm() {
       // Upload the model
       const result = await modelService.uploadModel(formData);
       console.log("Upload successful:", result);
+
+      // Now register on blockchain
+      setBlockchainStatus({
+        ...blockchainStatus,
+        registering: true
+      });
+
+      // Get user info
+      const userString = localStorage.getItem('user');
+      const user = userString ? JSON.parse(userString) : null;
+      
+      if (!user || !user.id) {
+        throw new Error("User information not available");
+      }
+      
+      console.log("Registering on blockchain...", result);
+      const blockchainResult = await registerModel(
+        user.id,
+        result.version.filecoinCid,
+        result.version.metadatacid,
+        values.licenseType || "MIT",
+        values.royaltyPercentage ? Number(values.royaltyPercentage) : 0,
+        values.commercialUse === true,
+        values.category || "other"
+      );
+      
+      if (!blockchainResult.success) {
+        throw new Error(blockchainResult.error || "Failed to register on blockchain");
+      }
+      
+      setBlockchainStatus({
+        registering: false,
+        success: true,
+        modelId: blockchainResult.modelId || null,
+        error: null
+      });
 
       // Redirect to the model page
       navigate(`/models/${result.id}`);
@@ -163,6 +238,26 @@ export default function UploadModelForm() {
             <p className="text-muted-foreground">Share your model with the community</p>
           </div>
         </div>
+
+        {/* blockchain connection warning */}
+        {!isConnected && (
+          <Alert className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Wallet Connection Required</AlertTitle>
+            <AlertDescription>
+              <p className="mb-2">You need to connect your wallet to upload models to the blockchain.</p>
+              <Button onClick={() => connectWallet()} size="sm">
+                Connect Wallet
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        <NetworkWarning
+          isCorrectNetwork={isCorrectNetwork}
+          networkName={networkName}
+          onSwitchNetwork={switchNetwork}
+        />
 
         {error && (
           <Alert variant="destructive" className="mb-6">
@@ -454,6 +549,24 @@ export default function UploadModelForm() {
               </Button>
             </form>
           </Form>
+          {/* Add blockchain registration status indicators */}
+        {blockchainStatus.registering && (
+          <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
+            <div className="flex items-center">
+              <Loader2 className="h-5 w-5 mr-2 animate-spin text-blue-500" />
+              <span>Registering model on blockchain...</span>
+            </div>
+          </div>
+        )}
+
+{blockchainStatus.success && blockchainStatus.modelId && (
+          <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-md">
+            <div className="flex items-center">
+              <CheckIcon className="h-5 w-5 mr-2 text-green-500" />
+              <span>Model successfully registered on blockchain with ID: {blockchainStatus.modelId}</span>
+            </div>
+          </div>
+        )}
         </div>
       </div>
     </div>

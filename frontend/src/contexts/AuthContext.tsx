@@ -1,5 +1,7 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { authService } from '../services/auth.service';
+import { walletService } from '../services/wallet.service';
+import { blockchainService } from '../services/blockchain.service';
 
 interface User {
   id: string;
@@ -47,6 +49,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     try {
       // Check if ethereum/web3 provider exists
+
+      const address = await walletService.connectWallet();
+
+      if (!address) {
+        throw new Error('Failed to connect wallet');
+      }
+
+      const isOnCorrectNetwork = await walletService.isOnSupportedNetwork();
+      if (!isOnCorrectNetwork) {
+        const switched = await walletService.switchToSupportedNetwork();
+        if (!switched) {
+          throw new Error("Please switch to a supported network");
+        }
+      }
+
+      await blockchainService.connect();
+
       if (!(window as any).ethereum) {
         throw new Error('No wallet found. Please install MetaMask or another Ethereum wallet.');
       }

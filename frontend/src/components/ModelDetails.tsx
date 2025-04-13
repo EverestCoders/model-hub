@@ -3,10 +3,11 @@ import { useParams } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import { modelService } from "../services/model.service";
 import ModelFileExplorer from "./ModelFileExplorer";
-import { History, Plus, X } from "lucide-react";
+import { ExternalLink, History, Loader2, Plus, Shield, X } from "lucide-react";
 import { Button } from "./ui/button";
 import VersionUpdateForm from "./VersionUpdateForm";
 import { Badge } from "./ui/badge";
+import { useBlockchain } from "../contexts/BlockChainContext";
 
 interface ModelFile {
   filename: string;
@@ -64,6 +65,9 @@ interface ModelDetail {
 }
 
 export default function ModelDetails() {
+
+  const { getModelDetails } = useBlockchain();
+
   const { id } = useParams<{ id: string }>();
   const [model, setModel] = useState<ModelDetail | null>(null);
   const [versions, setVersions] = useState<ModelVersion[]>([]);
@@ -74,6 +78,59 @@ export default function ModelDetails() {
   const [activeTab, setActiveTab] = useState<string>("readme");
   const [showVersionForm, setShowVersionForm] = useState<boolean>(false);
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
+  const [blockchainInfo, setBlockchainInfo] = useState<{
+    loading: boolean;
+    onChain: boolean;
+    modelId: number | null;
+    details: any | null;
+    error: string | null;
+  }>({
+    loading: false,
+    onChain: false,
+    modelId: null,
+    details: null,
+    error: null
+  });
+
+  // Add function to verify on blockchain
+  const verifyOnBlockchain = async () => {
+    if (!model) return;
+    
+    setBlockchainInfo(prev => ({ ...prev, loading: true, error: null }));
+    //TODO: Add blockchain verification
+    try {
+      // First, search for the model by CID on the blockchain
+      // This would require a backend endpoint to search by CID
+      // For now, we'll use a mock implementation
+      const modelId = 1; // In a real implementation, this would come from an API call
+      
+      // Get blockchain details
+      const details = await getModelDetails(modelId);
+      console.log("Blockchain details:", details);
+      
+      setBlockchainInfo({
+        loading: false,
+        onChain: true,
+        modelId,
+        details,
+        error: null
+      });
+    } catch (error) {
+      console.error("Blockchain verification error:", error);
+      setBlockchainInfo(prev => ({
+        ...prev,
+        loading: false,
+        error: error instanceof Error ? error.message : "Failed to verify on blockchain"
+      }));
+    }
+  };
+  
+  // Add this to your useEffect to check blockchain status when model loads
+  useEffect(() => {
+    if (model?.latestVersion?.filecoinCid) {
+      verifyOnBlockchain();
+    }
+  }, [model?.id]);
 
   const token = localStorage.getItem('auth_token'); 
   const userString = localStorage.getItem('user');
@@ -124,6 +181,81 @@ export default function ModelDetails() {
       fetchModelDetails();
     }
   }, [id]);
+
+  // Add this in your component where appropriate:
+  const renderBlockchainInfo = () => {
+    if (blockchainInfo.loading) {
+      return (
+        <div className="p-4 bg-gray-50 rounded-lg border flex items-center">
+          <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+          <span>Verifying on blockchain...</span>
+        </div>
+      );
+    }
+    
+    if (blockchainInfo.error) {
+      return (
+        <div className="p-4 bg-red-50 rounded-lg border border-red-200">
+          <p className="text-sm text-red-600">{blockchainInfo.error}</p>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={verifyOnBlockchain} 
+            className="mt-2"
+          >
+            Retry Verification
+          </Button>
+        </div>
+      );
+    }
+    
+    if (blockchainInfo.onChain) {
+      return (
+        <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+          <div className="flex items-center mb-2">
+            <Shield className="h-5 w-5 mr-2 text-green-600" />
+            <span className="font-medium">Verified on Blockchain</span>
+          </div>
+          
+          <div className="space-y-2 text-sm">
+            <div><strong>Model ID:</strong> {blockchainInfo.modelId}</div>
+            {blockchainInfo.details && (
+              <>
+                <div><strong>Owner:</strong> {blockchainInfo.details.owner.substring(0, 8)}...</div>
+                <div><strong>License:</strong> {blockchainInfo.details.licenseType}</div>
+                <div><strong>Registered:</strong> {new Date(blockchainInfo.details.creationTime).toLocaleString()}</div>
+              </>
+            )}
+            
+            <div className="mt-2">
+              <a 
+                href={`https://calibration.filfox.info/en/address/${blockchainInfo.details?.owner}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline inline-flex items-center"
+              >
+                View on Explorer <ExternalLink className="h-3 w-3 ml-1" />
+              </a>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    return (
+      <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+        <p className="text-sm">This model hasn't been verified on the blockchain yet.</p>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={verifyOnBlockchain} 
+          className="mt-2"
+        >
+          Verify on Blockchain
+        </Button>
+      </div>
+    );
+  };
 
   const handleDownload = async () => {
     try {
@@ -545,6 +677,9 @@ export default function ModelDetails() {
             ) : (
               <p className="text-sm text-gray-500">No ratings yet.</p>
             )}
+            <h3 className="font-medium mb-3">Blockchain Verification</h3>
+            {renderBlockchainInfo()}
+
           </div>
         </div>
       </div>
