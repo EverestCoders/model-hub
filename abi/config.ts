@@ -2,7 +2,7 @@ import { modelHubABI } from "./modelHub";
 
 export const CONTRACTS ={
         MODELHUB: {
-          address: "0x4516E3f8526063c19D04fd55c712C72E9E4a4cd4",
+          address: "0xbeed8455ec99f8a8d8628a94AF998d50781e2D45",
           abi: modelHubABI,
         }
 } as const;

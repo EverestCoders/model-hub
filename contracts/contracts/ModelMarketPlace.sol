@@ -35,6 +35,7 @@ contract ModelMarketplace {
     mapping(uint256 => ModelInfo) public models;
     mapping(string => UserModel) private userModels; // Maps user_id to model IDs
     mapping(address => uint256) public ownerBalance;
+    mapping(string => uint256) public cidToModelId;
     uint256 public platformBalance;
     uint256 public platformFeePercentage = 200; // 2% = 200 (in basis points)
     uint256 public modelCounter = 0;
@@ -126,7 +127,7 @@ contract ModelMarketplace {
 
         // Mark CID as registered
         registeredBaseCIDs[_baseCID] = true;
-
+        cidToModelId[_baseCID] = newModelId;
         emit ModelRegistered(newModelId, _userId, msg.sender, _baseCID);
 
         return newModelId;
