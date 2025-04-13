@@ -5,6 +5,7 @@ import ModelFileExplorer from "./ModelFileExplorer";
 import { useBlockchain } from "../contexts/BlockChainContext";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
 import { AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 
 import { ModelHeader } from "./model-details/ModelHeader";
 import { ModelMetadata } from "./model-details/ModelMetadata";
@@ -12,6 +13,10 @@ import { ModelTabs } from "./model-details/ModelTabs";
 import { ModelRatings } from "./model-details/ModelRatings";
 import { BlockchainVerification } from "./model-details/BlockchainVerification";
 import VersionUpdateForm from "./VersionUpdateForm";
+import { PaymentHistory } from "./model-details/PaymentHistory";
+import { WithdrawFundsButton } from "./model-details/WithDrawFunds";
+import { ethers } from "ethers";
+import { BlockchainStats } from "./model-details/BlockChainStats";
 
 export default function ModelDetails() {
   const { getModelDetails, findModelByCID, getModelPaymentAt, getModelPaymentsCount  } = useBlockchain();
@@ -39,6 +44,8 @@ export default function ModelDetails() {
     details: null,
     error: null
   });
+  const [paymentsCount, setPaymentsCount] = useState<number>(0);
+  const [totalEarned, setTotalEarned] = useState<string>("0");
 
   const token = localStorage.getItem('auth_token'); 
   const userString = localStorage.getItem('user');
@@ -224,6 +231,39 @@ export default function ModelDetails() {
     refreshData();
   };
 
+  const loadPaymentStats = async () => {
+    if (!blockchainInfo.onChain || !blockchainInfo.modelId) {
+      return;
+    }
+    
+    try {
+      const count = await getModelPaymentsCount(blockchainInfo.modelId);
+      setPaymentsCount(count);
+      
+      if (count > 0) {
+        let totalAmount = ethers.parseEther("0");
+        
+        for (let i = 0; i < count; i++) {
+          const payment = await getModelPaymentAt(blockchainInfo.modelId, i);
+          // Calculate net amount (minus platform fee)
+          const netAmount = payment[2] - payment[3];
+          totalAmount = totalAmount + BigInt(netAmount);
+        }
+        
+        setTotalEarned(ethers.formatEther(totalAmount));
+      }
+    } catch (error) {
+      console.error("Error loading payment stats:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (blockchainInfo.onChain && blockchainInfo.modelId) {
+      loadPaymentStats();
+    }
+  }, [blockchainInfo.onChain, blockchainInfo.modelId]);
+  
+
   // Initial data loading
   useEffect(() => {
     const fetchModelDetails = async () => {
@@ -385,6 +425,34 @@ export default function ModelDetails() {
               verifyOnBlockchain={verifyOnBlockchain}
             />
           </div>
+
+           {/* Blockchain Stats - Add this component */}
+            {blockchainInfo.onChain && blockchainInfo.modelId && blockchainInfo.details && (
+              <BlockchainStats
+                modelId={blockchainInfo.modelId}
+                details={blockchainInfo.details}
+                paymentsCount={paymentsCount}
+                totalEarned={totalEarned}
+              />
+            )}
+
+          {/* Payment History - for both owners and users */}
+          {blockchainInfo.onChain && blockchainInfo.modelId && (
+            <PaymentHistory
+              modelId={blockchainInfo.modelId} 
+              ownerAddress={blockchainInfo.details?.owner}
+            />
+          )}
+
+          {/* Withdraw Funds - only for owners */}
+          {blockchainInfo.onChain && blockchainInfo.details && (
+            <WithdrawFundsButton
+              ownerAddress={blockchainInfo.details.owner}
+              onSuccess={() => {
+                toast.success("Funds withdrawn");
+              }}
+            />
+          )}
         </div>
       </div>
     </div>

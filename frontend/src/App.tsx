@@ -7,6 +7,7 @@ import UploadModelForm from "./components/UpladModel";
 import ModelDetails from "./components/ModelDetails";
 import { TransactionQueue } from "./components/TransactionQueue";
 import { useBlockchain, BlockchainProvider } from "./contexts/BlockChainContext";
+import { Toaster } from "./components/ui/sonner";
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -50,7 +51,8 @@ function App() {
             </ProtectedRoute>
           }
         />
-      </Routes>
+        </Routes>
+        <Toaster position="bottom-right" />
       </BlockchainMonitor>
       </BlockchainProvider>
   );

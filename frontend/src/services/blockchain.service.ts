@@ -389,6 +389,67 @@ async findModelByCID(cid: string): Promise<number | null> {
     return null;
   }
 }
+
+async withdrawBalance(): Promise<{ success: boolean; txHash?: string; error?: string }> {
+  try {
+    if (!this.contract || !this.signer) {
+      await this.connect();
+      if (!this.contract || !this.signer) {
+        throw new Error('Not connected to blockchain');
+      }
+    }
+    
+    // Create transaction in tracking system
+    const txId = transactionService.addTransaction(`Withdrawing balance`);
+    
+    try {
+      // Call contract method
+      const tx = await this.contract.withdrawBalance();
+      
+      // Update transaction with hash
+      transactionService.updateTransactionHash(txId, tx.hash);
+      
+      // Wait for transaction to be mined
+      const receipt = await tx.wait();
+      
+      // Mark transaction as confirmed
+      transactionService.confirmTransaction(txId);
+      
+      return { 
+        success: true, 
+        txHash: receipt.hash 
+      };
+    } catch (contractError) {
+      transactionService.failTransaction(
+        txId, 
+        contractError instanceof Error ? contractError.message : 'Transaction failed'
+      );
+      throw contractError;
+    }
+  } catch (error: any) {
+    console.error('Error withdrawing balance:', error);
+    return { 
+      success: false, 
+      error: error.message || 'Unknown error occurred' 
+    };
+  }
+}
+
+async getOwnerBalance(address: string): Promise<ethers.BigNumberish> {
+  try {
+    if (!this.contract || !this.signer) {
+      await this.connect();
+      if (!this.contract || !this.signer) {
+        throw new Error('Not connected to blockchain');
+      }
+    }
+    
+    return await this.contract.ownerBalance(address);
+  } catch (error: any) {
+    console.error('Error getting owner balance:', error);
+    throw error;
+  }
+}
 }
 
 export const blockchainService = new BlockchainService();

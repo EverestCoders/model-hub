@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '../ui/button';
-import { Loader2, AlertCircle, Check } from 'lucide-react';
+import { Loader2, AlertCircle, Check, DollarSign } from 'lucide-react';
 import { useBlockchain } from '../../contexts/BlockChainContext';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
@@ -77,13 +77,12 @@ export const PurchaseModelButton: React.FC<PurchaseModelButtonProps> = ({
   
   if (success) {
     return (
-      <Alert variant="default" className="bg-green-50 border-green-200 text-green-800">
-        <Check className="h-4 w-4" />
-        <AlertTitle>Purchase Successful!</AlertTitle>
-        <AlertDescription>
-          You now have access to {modelName}. You can download it now.
-        </AlertDescription>
-      </Alert>
+      <div className="bg-green-50 border border-green-200 text-green-800 rounded-lg p-3 flex items-center">
+        <div className="bg-white p-1 rounded-full mr-2">
+          <Check className="h-4 w-4 text-green-500" />
+        </div>
+        <span className="text-sm font-medium">Access granted to {modelName}</span>
+      </div>
     );
   }
   
@@ -100,7 +99,7 @@ export const PurchaseModelButton: React.FC<PurchaseModelButtonProps> = ({
       <Button 
         onClick={handlePurchase} 
         disabled={isPurchasing}
-        className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+        className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-sm hover:shadow transition-all"
       >
         {isPurchasing ? (
           <>
@@ -108,7 +107,10 @@ export const PurchaseModelButton: React.FC<PurchaseModelButtonProps> = ({
             Processing...
           </>
         ) : (
-          <>Purchase Access ({formattedPrice} FIL)</>
+          <>
+            <DollarSign className="mr-1 h-4 w-4" />
+            Purchase Access ({formattedPrice} FIL)
+          </>
         )}
       </Button>
     </div>

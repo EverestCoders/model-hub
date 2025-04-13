@@ -2,6 +2,7 @@ import React, { createContext, useContext, ReactNode } from 'react';
 import { useBlockchainConnection } from '../hooks/useBlockChainConnection';
 import { Transaction } from '../services/transaction.service';
 import { blockchainService } from '../services/blockchain.service';
+import { ethers } from 'ethers';
 
 interface BlockchainContextValue {
   isConnected: boolean;
@@ -42,6 +43,8 @@ interface BlockchainContextValue {
   getModelPaymentsCount: (modelId: number) => Promise<number>;
   getModelPaymentAt: (modelId: number, index: number) => Promise<any>;
   findModelByCID: (cid: string) => Promise<number | null>;
+  withdrawBalance: () => Promise<{ success: boolean; txHash?: string; error?: string }>;
+  getOwnerBalance: (address: string) => Promise<ethers.BigNumberish>;
 }
 
 const BlockchainContext = createContext<BlockchainContextValue | undefined>(undefined);
@@ -175,6 +178,30 @@ export const BlockchainProvider: React.FC<{ children: ReactNode }> = ({ children
     
     return blockchainService.findModelByCID(cid);
   };
+
+  const withdrawBalance = async () => {
+    if (!connection.isConnected) {
+      await connection.connectWallet();
+    }
+    
+    if (!connection.isCorrectNetwork) {
+      await connection.switchNetwork();
+    }
+    
+    return blockchainService.withdrawBalance();
+  };
+  
+  const getOwnerBalance = async (address: string) => {
+    if (!connection.isConnected) {
+      await connection.connectWallet();
+    }
+    
+    if (!connection.isCorrectNetwork) {
+      await connection.switchNetwork();
+    }
+    
+    return blockchainService.getOwnerBalance(address);
+  };
   
   const value: BlockchainContextValue = {
     ...connection,
@@ -185,7 +212,9 @@ export const BlockchainProvider: React.FC<{ children: ReactNode }> = ({ children
     purchaseAccess,
     getModelPaymentsCount,
     getModelPaymentAt,
-    findModelByCID
+    findModelByCID,
+    withdrawBalance,
+    getOwnerBalance
   };
   
   return (
