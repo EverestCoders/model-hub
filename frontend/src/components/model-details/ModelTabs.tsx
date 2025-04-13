@@ -1,9 +1,10 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
+import { PrismAsyncLight as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { Button } from '../ui/button';
 import { History } from 'lucide-react';
 import { Badge } from '../ui/badge';
-
+import { solarizedLight } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 interface ModelTabsProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
@@ -42,7 +43,9 @@ export const ModelTabs: React.FC<ModelTabsProps> = ({
           <li className="mr-2">
             <button
               className={`inline-block py-2 px-4 border-b-2 ${
-                activeTab === "readme" ? "border-blue-500 text-blue-600" : "border-transparent"
+                activeTab === "readme"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent"
               }`}
               onClick={() => setActiveTab("readme")}
             >
@@ -52,7 +55,9 @@ export const ModelTabs: React.FC<ModelTabsProps> = ({
           <li className="mr-2">
             <button
               className={`inline-block py-2 px-4 border-b-2 ${
-                activeTab === "config" ? "border-blue-500 text-blue-600" : "border-transparent"
+                activeTab === "config"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent"
               }`}
               onClick={() => setActiveTab("config")}
             >
@@ -62,7 +67,9 @@ export const ModelTabs: React.FC<ModelTabsProps> = ({
           <li className="mr-2">
             <button
               className={`inline-block py-2 px-4 border-b-2 ${
-                activeTab === "versions" ? "border-blue-500 text-blue-600" : "border-transparent"
+                activeTab === "versions"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent"
               }`}
               onClick={() => setActiveTab("versions")}
             >
@@ -78,29 +85,100 @@ export const ModelTabs: React.FC<ModelTabsProps> = ({
             {readme ? (
               <div>
                 {/* Add a version indicator if not showing latest version */}
-                {model.latestVersion && model.latestVersion.id !== selectedVersionId && selectedVersionId && (
-                  <div className="mb-4 p-2 bg-blue-50 border border-blue-200 rounded-md text-sm">
-                    Viewing README for Version {
-                      versions.find(v => v.id === selectedVersionId)?.versionNumber || '?'
-                    }
-                    <Button 
-                      variant="link" 
-                      size="sm" 
-                      className="ml-2" 
-                      onClick={() => setSelectedVersionId(null)}
-                    >
-                      View Latest
-                    </Button>
-                  </div>
-                )}
-                
-                <div className="prose prose-sm max-w-none prose-headings:font-semibold prose-headings:text-gray-900 prose-p:text-gray-700 prose-a:text-blue-600">
-                  <ReactMarkdown>{readme}</ReactMarkdown>
+                {model.latestVersion &&
+                  model.latestVersion.id !== selectedVersionId &&
+                  selectedVersionId && (
+                    <div className="mb-4 p-2 bg-blue-50 border border-blue-200 rounded-md text-sm">
+                      Viewing README for Version{" "}
+                      {versions.find((v) => v.id === selectedVersionId)
+                        ?.versionNumber || "?"}
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="ml-2"
+                        onClick={() => setSelectedVersionId(null)}
+                      >
+                        View Latest
+                      </Button>
+                    </div>
+                  )}
+
+                <div className="markdown-body prose prose-sm max-w-none">
+                  <ReactMarkdown
+                    components={{
+                      h1: ({ node, ...props }) => (
+                        <h1
+                          className="text-2xl font-bold mt-6 mb-4"
+                          {...props}
+                        />
+                      ),
+                      h2: ({ node, ...props }) => (
+                        <h2
+                          className="text-xl font-bold mt-5 mb-3"
+                          {...props}
+                        />
+                      ),
+                      h3: ({ node, ...props }) => (
+                        <h3
+                          className="text-lg font-bold mt-4 mb-2"
+                          {...props}
+                        />
+                      ),
+                      p: ({ node, ...props }) => (
+                        <p className="mb-4" {...props} />
+                      ),
+                      a: ({ node, ...props }) => (
+                        <a
+                          className="text-blue-600 hover:underline"
+                          {...props}
+                        />
+                      ),
+                      ul: ({ node, ...props }) => (
+                        <ul className="list-disc pl-5 mb-4" {...props} />
+                      ),
+                      ol: ({ node, ...props }) => (
+                        <ol className="list-decimal pl-5 mb-4" {...props} />
+                      ),
+                      li: ({ node, ...props }) => (
+                        <li className="mb-1" {...props} />
+                      ),
+                      blockquote: ({ node, ...props }) => (
+                        <blockquote
+                          className="border-l-4 border-gray-200 pl-4 italic"
+                          {...props}
+                        />
+                      ),
+                      code({ node, className, children, ...props }) {
+                        const match = /language-(\w+)/.exec(className || "");
+                        return match ? (
+                          <SyntaxHighlighter
+                            style={solarizedLight}
+                            language={match[1]}
+                            PreTag="div"
+                            className="rounded-md my-4"
+                          >
+                            {String(children).replace(/\n$/, "")}
+                          </SyntaxHighlighter>
+                        ) : (
+                          <code
+                            className="bg-gray-100 px-1 py-0.5 rounded font-mono text-sm"
+                            {...props}
+                          >
+                            {children}
+                          </code>
+                        );
+                      },
+                    }}
+                  >
+                    {readme}
+                  </ReactMarkdown>
                 </div>
               </div>
             ) : (
               <div className="bg-gray-50 border border-gray-200 rounded-md p-6 text-center">
-                <p className="text-gray-500">No README file available for this model.</p>
+                <p className="text-gray-500">
+                  No README file available for this model.
+                </p>
               </div>
             )}
           </>
@@ -116,7 +194,9 @@ export const ModelTabs: React.FC<ModelTabsProps> = ({
               </div>
             ) : (
               <div className="bg-gray-50 border rounded-md p-6 text-center">
-                <p className="text-gray-500">No configuration file available for this model.</p>
+                <p className="text-gray-500">
+                  No configuration file available for this model.
+                </p>
               </div>
             )}
           </>
@@ -126,7 +206,10 @@ export const ModelTabs: React.FC<ModelTabsProps> = ({
           <div className="border rounded-md divide-y">
             {versions.length > 0 ? (
               versions.map((version, index) => (
-                <div key={version.id} className="p-4 hover:bg-gray-50/50 transition-colors">
+                <div
+                  key={version.id}
+                  className="p-4 hover:bg-gray-50/50 transition-colors"
+                >
                   <div className="flex justify-between items-start">
                     <div className="flex items-start gap-3">
                       <div className="bg-blue-100 rounded-full p-2 mt-1">
@@ -134,7 +217,9 @@ export const ModelTabs: React.FC<ModelTabsProps> = ({
                       </div>
                       <div>
                         <div className="flex items-center">
-                          <h3 className="text-sm font-medium">Version {version.versionNumber}</h3>
+                          <h3 className="text-sm font-medium">
+                            Version {version.versionNumber}
+                          </h3>
                           {index === 0 && (
                             <Badge className="ml-2 bg-green-100 text-green-700 border-green-200 text-xs">
                               Latest
@@ -145,7 +230,9 @@ export const ModelTabs: React.FC<ModelTabsProps> = ({
                           {formatDate(version.createdAt)}
                         </p>
                         {version.commitMessage && (
-                          <p className="text-sm mt-2">{version.commitMessage}</p>
+                          <p className="text-sm mt-2">
+                            {version.commitMessage}
+                          </p>
                         )}
                         <div className="flex gap-2 mt-2 text-xs">
                           <Badge variant="outline" className="bg-gray-50">
@@ -160,17 +247,19 @@ export const ModelTabs: React.FC<ModelTabsProps> = ({
                       </div>
                     </div>
                     <div className="flex space-x-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => handleVersionView(model.id, version.id)}
                       >
                         View Files
                       </Button>
-                      <Button 
-                        variant="secondary" 
-                        size="sm" 
-                        onClick={() => handleVersionDownload(model.id, version.id)}
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() =>
+                          handleVersionDownload(model.id, version.id)
+                        }
                       >
                         Download
                       </Button>
@@ -180,7 +269,9 @@ export const ModelTabs: React.FC<ModelTabsProps> = ({
               ))
             ) : (
               <div className="p-6 text-center">
-                <p className="text-gray-500">No versions available for this model.</p>
+                <p className="text-gray-500">
+                  No versions available for this model.
+                </p>
               </div>
             )}
           </div>

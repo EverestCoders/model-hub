@@ -17,6 +17,7 @@ import { PaymentHistory } from "./model-details/PaymentHistory";
 import { WithdrawFundsButton } from "./model-details/WithDrawFunds";
 import { ethers } from "ethers";
 import { BlockchainStats } from "./model-details/BlockChainStats";
+import Navbar from "./Navbar";
 
 export default function ModelDetails() {
   const { getModelDetails, findModelByCID, getModelPaymentAt, getModelPaymentsCount  } = useBlockchain();
@@ -347,6 +348,10 @@ export default function ModelDetails() {
   }
 
   return (
+    <>
+    <div className="pt-10 px-20">
+      <Navbar />
+      </div>
     <div className="container mx-auto py-8 px-4">
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-3">
@@ -456,5 +461,6 @@ export default function ModelDetails() {
         </div>
       </div>
     </div>
+    </>
   );
 }
