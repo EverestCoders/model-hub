@@ -1,4 +1,3 @@
-// frontend/src/contexts/BlockchainContext.tsx
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useBlockchainConnection } from '../hooks/useBlockChainConnection';
 import { Transaction } from '../services/transaction.service';
@@ -40,6 +39,9 @@ interface BlockchainContextValue {
     modelId: number,
     price: string
   ) => Promise<{ success: boolean; txHash?: string; error?: string }>;
+  getModelPaymentsCount: (modelId: number) => Promise<number>;
+  getModelPaymentAt: (modelId: number, index: number) => Promise<any>;
+  findModelByCID: (cid: string) => Promise<number | null>;
 }
 
 const BlockchainContext = createContext<BlockchainContextValue | undefined>(undefined);
@@ -137,6 +139,42 @@ export const BlockchainProvider: React.FC<{ children: ReactNode }> = ({ children
     
     return blockchainService.purchaseAccess(modelId, price);
   };
+
+  const getModelPaymentsCount = async (modelId: number) => {
+    if (!connection.isConnected) {
+      await connection.connectWallet();
+    }
+    
+    if (!connection.isCorrectNetwork) {
+      await connection.switchNetwork();
+    }
+    
+    return blockchainService.getModelPaymentsCount(modelId);
+  };
+
+  const getModelPaymentAt = async (modelId: number, index: number) => {
+    if (!connection.isConnected) {
+      await connection.connectWallet();
+    }
+    
+    if (!connection.isCorrectNetwork) {
+      await connection.switchNetwork();
+    }
+    
+    return blockchainService.getModelPaymentAt(modelId, index);
+  };
+
+  const findModelByCID = async (cid: string) => {
+    if (!connection.isConnected) {
+      await connection.connectWallet();
+    }
+    
+    if (!connection.isCorrectNetwork) {
+      await connection.switchNetwork();
+    }
+    
+    return blockchainService.findModelByCID(cid);
+  };
   
   const value: BlockchainContextValue = {
     ...connection,
@@ -144,7 +182,10 @@ export const BlockchainProvider: React.FC<{ children: ReactNode }> = ({ children
     getUserModels,
     getModelDetails,
     updateModelDetails,
-    purchaseAccess
+    purchaseAccess,
+    getModelPaymentsCount,
+    getModelPaymentAt,
+    findModelByCID
   };
   
   return (

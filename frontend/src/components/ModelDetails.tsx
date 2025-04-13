@@ -14,7 +14,7 @@ import { BlockchainVerification } from "./model-details/BlockchainVerification";
 import VersionUpdateForm from "./VersionUpdateForm";
 
 export default function ModelDetails() {
-  const { getModelDetails } = useBlockchain();
+  const { getModelDetails, findModelByCID, getModelPaymentAt, getModelPaymentsCount  } = useBlockchain();
   const { id } = useParams<{ id: string }>();
   const [model, setModel] = useState<any | null>(null);
   const [versions, setVersions] = useState<any[]>([]);
@@ -25,7 +25,7 @@ export default function ModelDetails() {
   const [activeTab, setActiveTab] = useState<string>("readme");
   const [showVersionForm, setShowVersionForm] = useState<boolean>(false);
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
-  const [hasPurchased, setHasPurchased] = useState<boolean>(true); // Default to true for now
+  const [hasPurchased, setHasPurchased] = useState<boolean>(false); 
   const [blockchainInfo, setBlockchainInfo] = useState<{
     loading: boolean;
     onChain: boolean;
@@ -51,11 +51,21 @@ export default function ModelDetails() {
     setBlockchainInfo(prev => ({ ...prev, loading: true, error: null }));
     
     try {
-      // First, search for the model by CID on the blockchain
-      // This would require a backend endpoint to search by CID
-      // For now, we'll use a mock implementation
-      const modelId = 1; // In a real implementation, this would come from an API call
-      
+
+      // Use the mapping function to find model by CID
+      const modelId = await findModelByCID(model.latestVersion.filecoinCid);
+
+      if (!modelId) {
+        setBlockchainInfo({
+          loading: false,
+          onChain: false,
+          modelId: null,
+          details: null,
+          error: "Model not found on blockchain"
+        });
+        return;
+      }
+
       // Get blockchain details
       const details = await getModelDetails(modelId);
       console.log("Blockchain details:", details);
@@ -69,14 +79,16 @@ export default function ModelDetails() {
       });
     } catch (error) {
       console.error("Blockchain verification error:", error);
-      setBlockchainInfo(prev => ({
-        ...prev,
+      setBlockchainInfo({
         loading: false,
+        onChain: false,
+        modelId: null,
+        details: null,
         error: error instanceof Error ? error.message : "Failed to verify on blockchain"
-      }));
+      });
     }
   };
-
+  
   // Format utility functions
   const formatBytes = (bytes: number | null | undefined): string => {
     if (!bytes) return '0 Bytes';
@@ -180,6 +192,38 @@ export default function ModelDetails() {
     }
   };
 
+  const checkPurchaseStatus = async () => {
+    if (!blockchainInfo.onChain || !blockchainInfo.modelId || !user) {
+      return false;
+    }
+    
+    try {
+      const paymentsCount = await getModelPaymentsCount(blockchainInfo.modelId);
+      
+      // Check through all payments to see if any are from this user
+      for (let i = 0; i < paymentsCount; i++) {
+        const payment = await getModelPaymentAt(blockchainInfo.modelId, i);
+        
+        // Check if this payment was made by the current user
+        if (payment && payment[0] && 
+            user.walletAddress && 
+            payment[0].toLowerCase() === user.walletAddress.toLowerCase()) {
+          return true;
+        }
+      }
+      
+      return false;
+    } catch (error) {
+      console.error("Error checking purchase status:", error);
+      return false;
+    }
+  };
+
+  const handlePurchaseSuccess = () => {
+    setHasPurchased(true);
+    refreshData();
+  };
+
   // Initial data loading
   useEffect(() => {
     const fetchModelDetails = async () => {
@@ -234,6 +278,14 @@ export default function ModelDetails() {
     }
   }, [model?.id]);
 
+  useEffect(() => {
+    if (blockchainInfo.onChain && blockchainInfo.modelId && user) {
+      checkPurchaseStatus().then(purchased => {
+        setHasPurchased(purchased);
+      });
+    }
+  }, [blockchainInfo.onChain, blockchainInfo.modelId, user]);
+
   if (loading) {
     return <div className="container mx-auto py-8">Loading model details...</div>;
   }
@@ -269,6 +321,7 @@ export default function ModelDetails() {
                 handleDownload={handleDownload}
                 hasPurchased={hasPurchased}
                 blockchainInfo={blockchainInfo}
+                onPurchaseSuccess={handlePurchaseSuccess}
               />
 
               {/* Version Update Form */}

@@ -332,6 +332,63 @@ async purchaseAccess(
     };
   }
 }
+
+async getModelPaymentsCount(modelId: number): Promise<number> {
+  try {
+    if (!this.contract || !this.signer) {
+      await this.connect();
+      if (!this.contract || !this.signer) {
+        throw new Error('Not connected to blockchain');
+      }
+    }
+    
+    const count = await this.contract.getModelPaymentsCount(modelId);
+    return Number(count);
+  } catch (error: any) {
+    console.error('Error getting payment count:', error);
+    return 0;
+  }
+}
+
+async getModelPaymentAt(modelId: number, index: number): Promise<any> {
+  try {
+    if (!this.contract || !this.signer) {
+      await this.connect();
+      if (!this.contract || !this.signer) {
+        throw new Error('Not connected to blockchain');
+      }
+    }
+    
+    return await this.contract.getModelPaymentAt(modelId, index);
+  } catch (error: any) {
+    console.error('Error getting payment details:', error);
+    throw error;
+  }
+}
+
+async findModelByCID(cid: string): Promise<number | null> {
+  try {
+    if (!this.contract || !this.signer) {
+      await this.connect();
+      if (!this.contract || !this.signer) {
+        throw new Error('Not connected to blockchain');
+      }
+    }
+    
+    // Use the cidToModelId mapping from your updated contract
+    const modelId = await this.contract.cidToModelId(cid);
+    
+    // If no model is found, this will return 0 in Solidity
+    if (modelId.toString() === '0') {
+      return null;
+    }
+    
+    return Number(modelId);
+  } catch (error) {
+    console.error('Error finding model by CID:', error);
+    return null;
+  }
+}
 }
 
 export const blockchainService = new BlockchainService();

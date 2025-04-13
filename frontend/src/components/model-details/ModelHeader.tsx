@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, X } from 'lucide-react';
 import { Button } from '../ui/button';
+import { PurchaseModelButton } from './PurchaseModelButton';
 
 interface ModelHeaderProps {
   model: any;
@@ -9,8 +10,15 @@ interface ModelHeaderProps {
   showVersionForm: boolean;
   setShowVersionForm: (show: boolean) => void;
   handleDownload: () => void;
-  hasPurchased?: boolean;
-  blockchainInfo: any;
+  hasPurchased: boolean;
+  blockchainInfo: {
+    loading: boolean;
+    onChain: boolean;
+    modelId: number | null;
+    details: any | null;
+    error: string | null;
+  };
+  onPurchaseSuccess: () => void;
 }
 
 export const ModelHeader: React.FC<ModelHeaderProps> = ({
@@ -19,8 +27,9 @@ export const ModelHeader: React.FC<ModelHeaderProps> = ({
   showVersionForm,
   setShowVersionForm,
   handleDownload,
-  hasPurchased = true,
-  blockchainInfo
+  hasPurchased,
+  blockchainInfo,
+  onPurchaseSuccess
 }) => {
   const getCategoryIcon = (category: string | null): string => {
     switch (category?.toLowerCase()) {
@@ -33,6 +42,16 @@ export const ModelHeader: React.FC<ModelHeaderProps> = ({
       default: return '📦';
     }
   };
+
+  // Determine if the current user is the model owner
+  const isOwner = user && model.creator.id === user.id;
+  
+  // Determine if the model requires payment and if the user hasn't purchased it yet
+  const requiresPurchase = blockchainInfo.onChain && 
+                          blockchainInfo.details && 
+                          Number(blockchainInfo.details.accessFee) > 0 && 
+                          !hasPurchased && 
+                          !isOwner;
 
   return (
     <>
@@ -56,7 +75,7 @@ export const ModelHeader: React.FC<ModelHeaderProps> = ({
         </div>
         <div className="flex gap-2">
           {/* Show Add Version button only for the model owner */}
-          {user && model.creator.id === user.id && (
+          {isOwner && (
             <Button 
               variant={showVersionForm ? "outline" : "secondary"}
               onClick={() => setShowVersionForm(!showVersionForm)}
@@ -73,13 +92,23 @@ export const ModelHeader: React.FC<ModelHeaderProps> = ({
             </Button>
           )}
 
-          {/* Simple download button - we'll add purchase functionality later */}
-          <Button 
-            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-            onClick={handleDownload}
-          >
-            Download
-          </Button>
+          {/* Display Purchase button or Download button */}
+          {requiresPurchase ? (
+            <PurchaseModelButton
+              modelId={blockchainInfo.modelId || 0}
+              price={blockchainInfo.details.accessFee.toString()}
+              modelName={model.name}
+              ownerAddress={blockchainInfo.details.owner}
+              onSuccess={onPurchaseSuccess}
+            />
+          ) : (
+            <Button 
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+              onClick={handleDownload}
+            >
+              Download
+            </Button>
+          )}
         </div>
       </div>
     </>
