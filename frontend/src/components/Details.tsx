@@ -30,7 +30,7 @@ export default function Details() {
       name: "Decentralised Storage",
       color: "bg-pink-100",
       icon: <Database className="h-6 w-6 text-white" />,
-      description: "Store your data securely across a distributed network with no single point of failure."
+      description: "Store your AI model securely across a distributed network with no single point of failure."
     },
     {
       name: "Version Control",
