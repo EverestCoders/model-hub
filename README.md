@@ -18,33 +18,6 @@ The platform combines a user-friendly frontend interface with robust backend ser
 
 ---
 
-## Tech Stack
-
-### Frontend
-
-- `React 19`  
-- `TypeScript`  
-- `Vite`  
-- `Tailwind CSS`  
-- `shadcn/ui` components  
-- `ethers.js` for blockchain interactions  
-
-### Backend
-
-- `Node.js` with `Express`  
-- `TypeScript` 
-- `Prisma` ORM with `SQLite` database  
-- `JWT` authentication  
-- `Multer` for file handling  
-
-### Blockchain & Storage
-
-- **Filecoin/FEVM** smart contracts  
-- Lighthouse.storage for decentralized storage  
-- **IPFS** for content addressing  
-
----
-
 ## Features
 
 ### Model Management
@@ -64,39 +37,9 @@ The platform combines a user-friendly frontend interface with robust backend ser
 
 - On-chain model registration  
 - Provenance tracking  
-- Licensing and access control  
-- Payment processing for commercial models  
-
-### User Authentication
-
-- Wallet-based authentication (MetaMask, etc.)  
-- Cryptographic signature verification  
-- JWT-based sessions  
+- Licensing and access control  ## Project Structure
 
 ---
-
-## Project Structure
-
-### Backend (`/src`)
-
-- `/controllers` - API request handlers  
-- `/routes` - API endpoint definitions  
-- `/services` - Business logic implementation  
-- `/middleware` - Request processing middleware  
-- `/interfaces` - TypeScript type definitions  
-- `/config` - Application configuration  
-
-### Frontend (`/frontend/src`)
-
-- `/components` - UI components  
-- `/services` - API client services  
-- `/contexts` - React context providers  
-- `/hooks` - Custom React hooks  
-
-### Smart Contracts (`/contracts`)
-
-- Model marketplace contract for registration and licensing  
-
 ---
 
 ## Getting Started
@@ -105,7 +48,7 @@ The platform combines a user-friendly frontend interface with robust backend ser
 
 - Node.js (v18+)  
 - `pnpm` package manager  
-- MetaMask or compatible Ethereum wallet  
+- MetaMask or compatible Filecoin wallet  
 
 ### Installation
 
