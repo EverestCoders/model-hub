@@ -3,7 +3,10 @@
 **Everest Model Hub** is a decentralized platform for sharing, discovering, and using AI models with verified provenance. The platform leverages **Filecoin** blockchain technology to provide secure storage and transparent AI model development.
 
 ---
+## **Problem We are trying to Solve:**
+If you're an AI researcher or developer who's created a model, you know there's no good way to share your work and get compensated. Your options are either open-source it for free or keep it closed. Plus, tracking versions is a mess, and there's always that worry about someone tampering with your model.
 
+We built Everest Model Hub to fix this. It's a place where creators can share their models, get paid fairly through `FIL` coins(Currently Supporting only `FIL` coins.), and trust that their work remains intact and verifiable.
 ## Overview
 
 Everest Model Hub allows AI researchers and developers to:
@@ -13,35 +16,12 @@ Everest Model Hub allows AI researchers and developers to:
 - Track changes and maintain version history  
 - Verify model provenance and integrity  
 - Share and monetize models with flexible licensing options  
-
-The platform combines a user-friendly frontend interface with robust backend services and blockchain integration to create a comprehensive ecosystem for AI model management.
-
----
-
-## Features
-
-### Model Management
-
-- Upload AI models with comprehensive metadata  
-- Support for various model types (language, diffusion, audio, etc.)  
-- Automatic versioning system  
-- Model discovery with advanced filtering  
-
-### Decentralized Storage
-
-- Secure storage on Filecoin network  
-- Content addressing via IPFS  
-- Verification of storage deals  
-
-### Blockchain Integration
-
-- On-chain model registration  
-- Provenance tracking  
-- Licensing and access control  ## Project Structure
+- AI Chatbot to help you find models for your niche use cases.
 
 ---
----
 
+## Application Architecture
+![Application Architecture](model_hub_archite.png)
 ## Getting Started
 
 ### Prerequisites
@@ -90,56 +70,52 @@ pnpm dev
 ```
 **Open your browser to** http://localhost:5173 
 
-## Usage
+# Storage and Blockchain Flow
 
-### Connecting Your Wallet
+Our platform integrates decentralized storage with blockchain verification in a seamless process:
 
-1. Click **"Connect Wallet"** on the homepage  
-2. Approve the connection request in your wallet  
-3. Sign the authentication message  
+---
 
-### Uploading a Model
+## Model Upload
 
-1. Navigate to the **Upload** page  
-2. Fill in model details (name, description, license, etc.)  
-3. Select model files  
-4. Submit and approve the blockchain transaction  
+1. Creator uploads model files and metadata through the UI.
+2. Backend processes files and bundles them for storage.
+3. Files are uploaded to Filecoin via the Lighthouse API.
+4. Two CIDs are generated:
+   - `filecoinCid`: for model files
+   - `metadataCid`: for metadata
 
-### Browsing Models
+---
 
-1. Go to the **Explore** page  
-2. Use filters to find models by category, license, etc.  
-3. Click on a model to view details and download files  
+## Blockchain Registration
+3. Registration transaction is recorded on the blockchain with a `ModelRegistered` event.
+1. Model details and CIDs are registered on our smart contract.
+2. Contract assigns a unique `modelId` and associates it with the creator's address.
 
-### Creating a New Version
+---
 
-1. Navigate to a model you own  
-2. Click **"Add Version"**  
-3. Upload new model files and provide a commit message  
-4. Submit and approve the transaction  
+## Access Purchase
 
-## Development
+1. Users can purchase access to paid models via the smart contract.
+2. Payment flows directly to the contract, which distributes funds:
+   - **98%** to the model creator
+   - **2%** to the platform as a fee
+---
 
-### Running Tests
+## Verification Mechanism
 
-```bash
-pnpm test
-```
-### Seeding the Database
+- Model integrity is verified by comparing downloaded file hashes with on-chain records.
+- Provenance is easily traceable through the blockchain's immutable history.
+- Complete version lineage is maintained with parent-child relationships.
 
-```bash
-pnpm seed
-```
-##  Smart Contract Integration
+---
 
-The platform interacts with the **ModelMarketplace** smart contract deployed on the **Filecoin Calibration Testnet**. Key contract functions include:
+## Creator Withdrawals
 
-- `registerModel` – Register a new model on the blockchain  
-- `updateModelDetails` – Update licensing and access information  
-- `purchaseAccess` – Pay for access to commercial models  
-- `getUserModels` – Retrieve models owned by a user  
-- `getModelDetails` – Get detailed model information  
-- `withdrawBalance` – Withdraw earnings from model sales  
+1. Creators can withdraw their earnings directly from the contract.
+2. Smart contract transfers funds to the creator's wallet address.
+
+
 
 ## Contributing
 
@@ -161,6 +137,13 @@ git commit -m 'Add some amazing feature'
 git push origin feature/amazing-feature
 ```
 - Open a Pull Request
+
+
+## Future Development 
+
+- Adding the Feature for uploading the  Datasets and verifying them for avoiding copyright issues.
+- Incentivizing the original dataset creators.
+- Making a SDK to directly interact with our model hub.
 
 ## License
 
