@@ -1,7 +1,6 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Shield, DollarSign, Users, Calendar } from 'lucide-react';
-import { ethers } from 'ethers';
 
 interface BlockchainStatsProps {
   modelId: number | null;

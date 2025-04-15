@@ -2,7 +2,6 @@ import React from 'react';
 import { Shield, ExternalLink, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { ethers } from 'ethers';
 
 interface BlockchainVerificationProps {
   blockchainInfo: {

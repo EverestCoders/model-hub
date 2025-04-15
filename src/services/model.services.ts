@@ -28,18 +28,17 @@ export class ModelService {
       category,
       tag,
       license,
-      creator
+      creator,
+      query  
     } = filter;
-
+  
     const skip = (page - 1) * limit;
-
-    // Build where conditions
+  
     const where: any = {};
     if (category) where.category = category;
     if (license) where.licenseType = license;
     if (creator) where.creatorId = creator;
     
-    // Handle tag filtering
     if (tag) {
       where.tags = {
         some: {
@@ -47,11 +46,17 @@ export class ModelService {
         }
       };
     }
-
-    // Get total count
+    
+    if (query) {
+      where.OR = [
+        { name: { contains: query, mode: 'insensitive' } },
+        { description: { contains: query, mode: 'insensitive' } },
+        { tags: { some: { tag: { contains: query, mode: 'insensitive' } } } },
+        { category: { contains: query, mode: 'insensitive' } }
+      ];
+    }
+  
     const total = await this.prisma.model.count({ where });
-
-    // Get models
     const models = await this.prisma.model.findMany({
       where,
       skip,
@@ -65,8 +70,6 @@ export class ModelService {
         }
       }
     });
-
-    // Format response
     const formattedModels = models.map(model => ({
       id: model.id,
       name: model.name,
@@ -83,7 +86,7 @@ export class ModelService {
         createdAt: model.versions[0].createdAt.toISOString()
       } : null
     }));
-
+  
     return {
       models: formattedModels,
       pagination: {

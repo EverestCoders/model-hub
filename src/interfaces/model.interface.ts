@@ -14,6 +14,7 @@ export interface ModelFilter {
   tag?: string;
   license?: string;
   creator?: string;
+  query?: string;
 }
 
 export interface ModelCreateDto {

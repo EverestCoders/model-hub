@@ -1,12 +1,16 @@
+// frontend/src/components/Models.tsx
 import React, { useState, useEffect } from "react";
 import Navbar from "./Navbar";
 import SearchBar from "./SearchBar";
 import FilterBar from "./FilterBar";
 import ModelCard from "./ModelCard";
+import ModelChatbot from "./ModelChatbot"; // Import the new component
 import { Button } from "./ui/button";
 import { modelService, ModelFilter } from "../services/model.service";
+import { useNavigate } from "react-router-dom";
 
 const Models: React.FC = () => {
+  const navigate = useNavigate();
   const [models, setModels] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,10 +47,11 @@ const Models: React.FC = () => {
   };
 
   const handleSearch = (query: string) => {
-    // In a real implementation, you would add the search query to your filters
-    console.log("Searching for:", query);
-    // For now, let's just reload the models
-    fetchModels();
+    setFilters({
+      ...filters,
+      query,
+      page: 1, // Reset to first page when searching
+    });
   };
 
   const handleCategorySelect = (category: string) => {
@@ -75,6 +80,10 @@ const Models: React.FC = () => {
     }
 
     setFilters(newFilters);
+  };
+  
+  const handleSelectModel = (modelId: string) => {
+    navigate(`/models/${modelId}`);
   };
 
   return (
@@ -158,6 +167,9 @@ const Models: React.FC = () => {
           </main>
         </div>
       </div>
+      
+      {/* Add the chatbot component */}
+      <ModelChatbot onSelectModel={handleSelectModel} />
     </div>
   );
 };

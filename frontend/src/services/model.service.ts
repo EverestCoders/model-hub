@@ -33,6 +33,7 @@ export interface ModelFilter {
   tag?: string;
   license?: string;
   creator?: string;
+  query?: string;
 }
 
 interface DownloadResponse {
@@ -50,12 +51,57 @@ interface ConfigResponse {
   content: string;
 }
 
-interface ModelVersionsResponse {
+export interface ModelVersionsResponse {
   versions: ModelVersion[];
 }
 
+export interface ModelData {
+  id: string;
+  name: string;
+  description: string | null;
+  creatorId: string;
+  creatorName: string | null;
+  createdAt: string;
+  licenseType: string;
+  category: string | null;
+  downloadCount: number;
+  ratingAvg: number | null;
+  latestVersion: {
+    versionNumber: number;
+    createdAt: string;
+  } | null;
+}
+
+export interface PaginationData {
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
+}
+
+export interface ModelsResponse {
+  models: ModelData[];
+  pagination: PaginationData;
+}
+
+export interface RatingResponse {
+  success: boolean;
+}
+
+export interface VersionCreationResponse {
+  modelId: string;
+  version: {
+    id: string;
+    versionNumber: number;
+    filecoinCid: string;
+    metadataCid: string;
+    commitMessage: string | null;
+    createdAt: string;
+  };
+}
+
 export const modelService = {
-  async getModels(filters: ModelFilter = {}) {
+  async getModels(filters: ModelFilter = {}): Promise<ModelsResponse> {
     try {
       const params = new URLSearchParams();
       
@@ -67,6 +113,7 @@ export const modelService = {
       if (filters.tag) params.append('tag', filters.tag);
       if (filters.license) params.append('license', filters.license);
       if (filters.creator) params.append('creator', filters.creator);
+      if (filters.query) params.append('query', filters.query);
       
       const response = await axios.get(`${API_BASE_URL}/models?${params.toString()}`);
       return response.data;
@@ -76,7 +123,7 @@ export const modelService = {
     }
   },
 
-  async getModelById(id: string) {
+  async getModelById(id: string): Promise<any> {
     try {
       const response = await axios.get(`${API_BASE_URL}/models/${id}`);
       return response.data;
@@ -138,7 +185,7 @@ export const modelService = {
     }
   },
 
-  async rateModel(modelId: string, rating: number, review?: string) {
+  async rateModel(modelId: string, rating: number, review?: string): Promise<RatingResponse> {
     try {
       const token = localStorage.getItem('auth_token');
       if (!token) {
@@ -161,7 +208,7 @@ export const modelService = {
     }
   },
 
-  async createModelVersion(modelId: string, versionData: FormData): Promise<any> {
+  async createModelVersion(modelId: string, versionData: FormData): Promise<VersionCreationResponse> {
     try {
       const token = localStorage.getItem('auth_token');
       if (!token) {
@@ -184,4 +231,4 @@ export const modelService = {
       throw error;
     }
   }
-}
+};
