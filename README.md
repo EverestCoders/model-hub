@@ -22,7 +22,7 @@ Everest Model Hub allows AI researchers and developers to:
 ---
 
 ## Application Architecture
-![Application Architecture](model_hub_archite.png)
+![Application Architecture](frontend/src/assets/architecture.png)
 ## Getting Started
 
 ### Prerequisites
@@ -117,35 +117,10 @@ Our platform integrates decentralized storage with blockchain verification in a 
 2. Smart contract transfers funds to the creator's wallet address.
 
 
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-- Fork the repository
-- Create your feature branch
-
-```bash
-git checkout -b feature/amazing-feature
-```
-- Commit your changes
-
-```bash
-git commit -m 'Add some amazing feature'
-```
-- Push to the branch
-
-```bash
-git push origin feature/amazing-feature
-```
-- Open a Pull Request
-
-
 ## Future Development 
 
 - Adding the Feature for uploading the  Datasets and verifying them for avoiding copyright issues.
 - Incentivizing the original dataset creators.
+- To create the entire pipeline so that user can run model using our platform as an API
 - Making a SDK to directly interact with our model hub.
 
-## License
-
-This project is licensed under the **MIT License**
