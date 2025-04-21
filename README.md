@@ -2,7 +2,11 @@
 
 **Everest Model Hub** is a decentralized platform for sharing, discovering, and using AI models with verified provenance. The platform leverages **Filecoin** blockchain technology to provide secure storage and transparent AI model development.
 
-Here is the Complete Demo: https://youtu.be/0WDYB2XP2ds
+Here is the Complete Demo: 
+https://youtu.be/0WDYB2XP2ds
+
+Our Contract is deployed on this address: `0xbeed8455ec99f8a8d8628a94AF998d50781e2D45` on Filecoin Calibration Testnet.
+
 ---
 ## **Problem We are trying to Solve:**
 If you're an AI researcher or developer who's created a model, you know there's no good way to share your work and get compensated. Your options are either open-source it for free or keep it closed. Plus, tracking versions is a mess, and there's always that worry about someone tampering with your model.
